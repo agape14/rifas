@@ -80,15 +80,17 @@
                                     title="{{ $number->status == 'disponible' ? 'Click para seleccionar' : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
                                     {{ $number->number }}
                                 </button>
-                                @if($number->status != 'disponible' && $number->participant)
-                                    <button
-                                        class="release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center"
-                                        data-number-id="{{ $number->id }}"
-                                        title="Liberar número - {{ $number->participant->name }}"
-                                        onclick="releaseNumberPublic({{ $number->id }})">
-                                        ×
-                                    </button>
-                                @endif
+                                @auth
+                                    @if($number->status != 'disponible' && $number->participant)
+                                        <button
+                                            class="release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center"
+                                            data-number-id="{{ $number->id }}"
+                                            title="Liberar número - {{ $number->participant->name }}"
+                                            onclick="releaseNumberPublic({{ $number->id }})">
+                                            ×
+                                        </button>
+                                    @endif
+                                @endauth
                             </div>
                         @endforeach
                     </div>
@@ -108,6 +110,15 @@
                             <span class="text-gray-600 dark:text-gray-400">Reservado</span>
                         </div>
                     </div>
+
+                    @guest
+                        <div class="mt-4 text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                <a href="{{ route('login') }}" class="text-blue-600 hover:text-blue-800 underline">Inicia sesión</a> 
+                                para poder liberar números asignados
+                            </p>
+                        </div>
+                    @endguest
                 </div>
             </div>
         </div>
@@ -327,6 +338,12 @@
     }
 
     function releaseNumberPublic(numberId) {
+        // Verificar si el usuario está autenticado (verificando si existen botones de liberar)
+        @guest
+        showAlert('Debes iniciar sesión para liberar números', 'error');
+        return;
+        @endguest
+
         if (confirm('¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.')) {
             fetch("{{ route('public.raffle.releaseNumber', $raffle->id) }}", {
                 method: 'POST',
@@ -338,7 +355,12 @@
                     number_id: numberId
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (response.status === 403) {
+                    throw new Error('No tienes permisos para realizar esta acción');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     // Actualizar el botón del número
@@ -369,7 +391,11 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                showAlert('Error al procesar la solicitud', 'error');
+                if (error.message === 'No tienes permisos para realizar esta acción') {
+                    showAlert('No tienes permisos para liberar números. Debes iniciar sesión como administrador.', 'error');
+                } else {
+                    showAlert('Error al procesar la solicitud', 'error');
+                }
             });
         }
     }

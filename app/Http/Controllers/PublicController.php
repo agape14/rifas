@@ -142,6 +142,11 @@ class PublicController extends Controller
 
     public function releaseNumber(Request $request, $id)
     {
+        // Verificar que el usuario está autenticado
+        if (!auth()->check()) {
+            return response()->json(['error' => 'No tienes permisos para realizar esta acción'], 403);
+        }
+
         $request->validate([
             'number_id' => 'required|exists:numbers,id'
         ]);
