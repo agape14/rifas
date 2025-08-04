@@ -179,16 +179,14 @@
                 body: formData
             })
             .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
-                }
-                return response.json();
+                return response.json().catch(() => {
+                    throw { error: 'Respuesta no válida del servidor' };
+                });
             })
             .then(data => {
                 if (data.success) {
                     closeModal();
 
-                    // Actualizar el botón del número
                     let btn = document.querySelector(`.number-btn[data-id="${selectedNumberId}"]`);
                     btn.classList.remove('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
                     btn.classList.add('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
@@ -197,7 +195,6 @@
                     btn.title = `Número vendido - ${data.participant_name || 'Participante'}`;
 
                     @if(auth()->check() && auth()->user()->is_admin)
-                    // Agregar botón de liberar si es admin
                     let numberContainer = btn.parentElement;
                     let releaseBtn = document.createElement('button');
                     releaseBtn.className = 'release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center';
@@ -208,10 +205,8 @@
                     numberContainer.appendChild(releaseBtn);
                     @endif
 
-                    // Actualizar estadísticas
                     updateStatistics();
 
-                    // Mostrar mensaje de éxito con información del participante
                     let message = data.success;
                     if (data.participant_exists) {
                         message += ` - Participante existente: ${data.participant_name}`;
@@ -223,11 +218,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                if (error.error) {
-                    showAlert(error.error, 'error');
-                } else {
-                    showAlert('Error al procesar la solicitud', 'error');
-                }
+                showAlert(error.error || 'Error al procesar la solicitud', 'error');
             });
         });
 
@@ -318,11 +309,11 @@
         alertDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 transform transition-all duration-300 ${
             type === 'success' ? 'bg-green-500 text-white border-l-4 border-green-700' : 'bg-red-500 text-white border-l-4 border-red-700'
         }`;
-        
+
         alertDiv.innerHTML = `
             <div class="flex items-center">
                 <div class="flex-shrink-0">
-                    ${type === 'success' 
+                    ${type === 'success'
                         ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>'
                         : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
                     }
@@ -372,7 +363,7 @@
                 document.getElementById('disponibles-count').textContent = data.disponibles;
                 document.getElementById('vendidos-count').textContent = data.vendidos;
                 document.getElementById('reservados-count').textContent = data.reservados;
-                
+
                 console.log('Estadísticas actualizadas:', data);
             })
             .catch(error => {
@@ -385,7 +376,7 @@
                 document.getElementById('disponibles-count').textContent = disponibles;
                 document.getElementById('vendidos-count').textContent = vendidos;
                 document.getElementById('reservados-count').textContent = reservados;
-                
+
                 console.log('Estadísticas calculadas localmente - Disponibles:', disponibles, 'Vendidos:', vendidos, 'Reservados:', reservados);
             });
     }
@@ -395,12 +386,12 @@
         showAlert('Debes iniciar sesión para liberar números', 'error');
         return;
         @endif
-        
+
         @if(!auth()->user()->is_admin)
         showAlert('No tienes permisos de administrador para liberar números', 'error');
         return;
         @endif
-        
+
         if (confirm('¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.')) {
             fetch("{{ route('public.raffle.releaseNumber', $raffle->id) }}", {
                 method: 'POST',
@@ -431,7 +422,7 @@
                     // Actualizar el botón del número
                     let numberContainer = document.querySelector(`.release-btn[data-number-id="${numberId}"]`).parentElement;
                     let btn = numberContainer.querySelector('.number-btn');
-                    
+
                     // Cambiar estilos del botón principal
                     btn.classList.remove('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
                     btn.classList.remove('from-yellow-400', 'to-yellow-600');
@@ -439,7 +430,7 @@
                     btn.setAttribute('data-status', 'disponible');
                     btn.disabled = false;
                     btn.title = 'Click para seleccionar';
-                    
+
                     // Remover el botón de liberar
                     let releaseBtn = numberContainer.querySelector('.release-btn');
                     if (releaseBtn) {
