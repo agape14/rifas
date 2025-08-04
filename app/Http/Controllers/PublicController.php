@@ -142,6 +142,11 @@ class PublicController extends Controller
 
     public function releaseNumber(Request $request, $id)
     {
+        // Verificar que el usuario está autenticado y es administrador
+        if (!auth()->check() || !auth()->user()->is_admin) {
+            return response()->json(['error' => 'No tienes permisos para liberar números'], 403);
+        }
+
         $request->validate([
             'number_id' => 'required|exists:numbers,id'
         ]);
