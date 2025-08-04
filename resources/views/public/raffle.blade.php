@@ -80,7 +80,7 @@
                                     title="{{ $number->status == 'disponible' ? 'Click para seleccionar' : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
                                     {{ $number->number }}
                                 </button>
-                                @if($number->status != 'disponible' && $number->participant)
+                                @if($number->status != 'disponible' && $number->participant && auth()->check())
                                     <button
                                         class="release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center"
                                         data-number-id="{{ $number->id }}"
@@ -327,6 +327,11 @@
     }
 
     function releaseNumberPublic(numberId) {
+        @if(!auth()->check())
+        showAlert('Debes iniciar sesión para liberar números', 'error');
+        return;
+        @endif
+        
         if (confirm('¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.')) {
             fetch("{{ route('public.raffle.releaseNumber', $raffle->id) }}", {
                 method: 'POST',
@@ -338,9 +343,15 @@
                     number_id: numberId
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (response.status === 401) {
+                    showAlert('Debes iniciar sesión para liberar números', 'error');
+                    return;
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     // Actualizar el botón del número
                     let numberContainer = document.querySelector(`.release-btn[data-number-id="${numberId}"]`).parentElement;
                     let btn = numberContainer.querySelector('.number-btn');
@@ -363,7 +374,7 @@
                     updateStatistics();
 
                     showAlert(data.success, 'success');
-                } else {
+                } else if (data) {
                     showAlert(data.error || 'Error al liberar el número', 'error');
                 }
             })
