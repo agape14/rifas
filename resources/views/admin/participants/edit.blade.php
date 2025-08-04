@@ -90,17 +90,36 @@
                             <div class="mt-8">
                                 <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Números Asignados</h4>
                                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         @foreach($participant->numbers as $number)
-                                            <div class="bg-white dark:bg-gray-600 rounded-lg p-3 text-center">
-                                                <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                                                    {{ $number->number }}
-                                                </div>
-                                                <div class="text-sm text-gray-600 dark:text-gray-400">
-                                                    {{ $number->raffle->name }}
-                                                </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                                    {{ ucfirst($number->status) }}
+                                            <div class="bg-white dark:bg-gray-600 rounded-lg p-4 border border-gray-200 dark:border-gray-500">
+                                                <div class="flex justify-between items-start">
+                                                    <div class="flex-grow">
+                                                        <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                                                            Número {{ $number->number }}
+                                                        </div>
+                                                        <div class="text-sm text-gray-600 dark:text-gray-400">
+                                                            {{ $number->raffle->name }}
+                                                        </div>
+                                                        <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                                            Estado: {{ ucfirst($number->status) }}
+                                                        </div>
+                                                        @if($number->price)
+                                                            <div class="text-xs text-green-600 dark:text-green-400 mt-1">
+                                                                Precio: ${{ number_format($number->price, 2) }}
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    <div class="ml-3">
+                                                        <button type="button" 
+                                                                onclick="releaseNumber({{ $number->id }}, '{{ $number->number }}', '{{ $number->raffle->name }}')"
+                                                                class="inline-flex items-center px-2 py-1 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md transition-colors duration-200">
+                                                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                            </svg>
+                                                            Liberar
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         @endforeach
@@ -124,4 +143,98 @@
             </div>
         </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+            <div class="mt-3">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 mb-4">
+                    <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 text-center">Confirmar Liberación</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-6" id="confirmMessage"></p>
+                <div class="flex justify-center space-x-3">
+                    <button type="button" onclick="closeConfirmModal()" 
+                            class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-400 dark:hover:bg-gray-500">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="confirmRelease()" 
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md">
+                        Liberar Número
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentNumberId = null;
+        let currentNumberText = '';
+        let currentRaffleName = '';
+
+        function releaseNumber(numberId, numberText, raffleName) {
+            currentNumberId = numberId;
+            currentNumberText = numberText;
+            currentRaffleName = raffleName;
+            
+            document.getElementById('confirmMessage').textContent = 
+                `¿Está seguro que desea liberar el número ${numberText} de la rifa "${raffleName}"?`;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            currentNumberId = null;
+            currentNumberText = '';
+            currentRaffleName = '';
+        }
+
+        function confirmRelease() {
+            if (!currentNumberId) return;
+
+            fetch("{{ route('admin.participants.releaseNumber', $participant->id) }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    number_id: currentNumberId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert(data.success, 'success');
+                    // Reload the page to refresh the numbers list
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showAlert(data.error || 'Error al liberar el número', 'error');
+                }
+                closeConfirmModal();
+            })
+            .catch(error => {
+                showAlert('Error al procesar la solicitud', 'error');
+                closeConfirmModal();
+            });
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            alertDiv.textContent = message;
+
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+    </script>
 </x-app-layout>

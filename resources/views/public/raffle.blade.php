@@ -72,29 +72,37 @@
                         @endphp
                         @foreach($numbers as $number)
                             <button
-                                class="number-btn w-16 h-16 text-lg font-bold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $number->status == 'disponible' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-lg hover:shadow-xl' : ($number->status == 'pagado' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white cursor-not-allowed' : 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white cursor-not-allowed') }}"
+                                class="number-btn w-16 h-16 text-lg font-bold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $number->status == 'disponible' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-lg hover:shadow-xl' : ($number->status == 'pagado' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white cursor-pointer' : 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white cursor-not-allowed') }}"
                                 data-id="{{ $number->id }}"
                                 data-status="{{ $number->status }}"
-                                {{ $number->status != 'disponible' ? 'disabled' : '' }}
-                                title="{{ $number->status == 'disponible' ? 'Click para seleccionar' : ($number->status == 'pagado' ? 'Número vendido' : 'Número reservado') }}">
+                                data-participant-id="{{ $number->participant_id }}"
+                                data-participant-name="{{ $number->participant ? $number->participant->name : '' }}"
+                                {{ ($number->status != 'disponible' && $number->status != 'pagado') ? 'disabled' : '' }}
+                                title="{{ $number->status == 'disponible' ? 'Click para seleccionar' : ($number->status == 'pagado' ? 'Número vendido - Doble click para liberar' : 'Número reservado') }}"
+                                {{ $number->status == 'pagado' ? 'ondblclick="showReleaseModal(' . $number->id . ', ' . $number->number . ', \'' . ($number->participant ? $number->participant->name : '') . '\')"' : '' }}>
                                 {{ $number->number }}
                             </button>
                         @endforeach
                     </div>
 
                     <!-- Leyenda -->
-                    <div class="mt-6 flex justify-center space-x-6 text-sm">
-                        <div class="flex items-center">
-                            <div class="w-4 h-4 bg-gradient-to-br from-green-400 to-green-600 rounded mr-2"></div>
-                            <span class="text-gray-600 dark:text-gray-400">Disponible</span>
+                    <div class="mt-6 space-y-3">
+                        <div class="flex justify-center space-x-6 text-sm">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-gradient-to-br from-green-400 to-green-600 rounded mr-2"></div>
+                                <span class="text-gray-600 dark:text-gray-400">Disponible</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-gradient-to-br from-red-400 to-red-600 rounded mr-2"></div>
+                                <span class="text-gray-600 dark:text-gray-400">Vendido</span>
+                            </div>
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded mr-2"></div>
+                                <span class="text-gray-600 dark:text-gray-400">Reservado</span>
+                            </div>
                         </div>
-                        <div class="flex items-center">
-                            <div class="w-4 h-4 bg-gradient-to-br from-red-400 to-red-600 rounded mr-2"></div>
-                            <span class="text-gray-600 dark:text-gray-400">Vendido</span>
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-4 h-4 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded mr-2"></div>
-                            <span class="text-gray-600 dark:text-gray-400">Reservado</span>
+                        <div class="text-center text-xs text-gray-500 dark:text-gray-400">
+                            💡 <strong>Tip:</strong> Haz doble click en un número vendido (rojo) para liberarlo
                         </div>
                     </div>
                 </div>
@@ -138,10 +146,35 @@
         </div>
     </div>
 
+    <!-- Modal para liberar número -->
+    <div id="releaseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-4 text-center">Liberar Número</h3>
+                <p class="text-sm text-gray-600 text-center mb-6" id="releaseMessage"></p>
+                <div class="flex justify-center space-x-3">
+                    <button type="button" onclick="closeReleaseModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="confirmReleaseNumber()" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                        Liberar Número
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function () {
         let selectedNumberId = null;
+        let releaseNumberId = null;
+        let releaseParticipantId = null;
 
         // Event listeners para botones de números
         document.querySelectorAll('.number-btn').forEach(btn => {
@@ -313,6 +346,67 @@
                 document.getElementById('vendidos-count').textContent = vendidos;
                 document.getElementById('reservados-count').textContent = reservados;
             });
+    }
+
+    // Release number functionality
+    function showReleaseModal(numberId, number, participantName) {
+        releaseNumberId = numberId;
+        const btn = document.querySelector(`.number-btn[data-id="${numberId}"]`);
+        releaseParticipantId = btn.getAttribute('data-participant-id');
+        
+        document.getElementById('releaseMessage').textContent = 
+            `¿Está seguro que desea liberar el número ${number} asignado a ${participantName}?`;
+        document.getElementById('releaseModal').classList.remove('hidden');
+    }
+
+    function closeReleaseModal() {
+        document.getElementById('releaseModal').classList.add('hidden');
+        releaseNumberId = null;
+        releaseParticipantId = null;
+    }
+
+    function confirmReleaseNumber() {
+        if (!releaseNumberId || !releaseParticipantId) return;
+
+        fetch("{{ route('public.raffle.releaseNumber', $raffle->id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                number_id: releaseNumberId,
+                participant_id: releaseParticipantId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeReleaseModal();
+
+                // Actualizar el botón del número
+                let btn = document.querySelector(`.number-btn[data-id="${releaseNumberId}"]`);
+                btn.classList.remove('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-pointer');
+                btn.classList.add('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
+                btn.setAttribute('data-status', 'disponible');
+                btn.setAttribute('data-participant-id', '');
+                btn.setAttribute('data-participant-name', '');
+                btn.setAttribute('title', 'Click para seleccionar');
+                btn.removeAttribute('ondblclick');
+                btn.disabled = false;
+
+                // Actualizar estadísticas
+                updateStatistics();
+
+                // Mostrar mensaje de éxito
+                showAlert(`${data.success} - Número ${data.number} de ${data.participant}`, 'success');
+            } else {
+                showAlert(data.error || 'Error al liberar número', 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('Error al procesar la solicitud', 'error');
+        });
     }
     </script>
     @endpush

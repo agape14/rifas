@@ -20,7 +20,7 @@ class PublicController extends Controller
     // Ver detalles de una rifa
     public function show($id)
     {
-        $raffle = Raffle::with('numbers', 'prizes')->findOrFail($id);
+        $raffle = Raffle::with('numbers.participant', 'prizes')->findOrFail($id);
         return view('public.raffle', compact('raffle'));
     }
 
@@ -137,6 +137,42 @@ class PublicController extends Controller
             'success' => 'Número asignado correctamente',
             'participant_exists' => $existingParticipant ? true : false,
             'participant_name' => $participant->name
+        ]);
+    }
+
+    /**
+     * Release a number from the public raffle view
+     */
+    public function releaseNumber(Request $request, $raffleId)
+    {
+        $request->validate([
+            'number_id' => 'required|exists:numbers,id',
+            'participant_id' => 'required|exists:participants,id'
+        ]);
+
+        $raffle = Raffle::findOrFail($raffleId);
+        $number = Number::findOrFail($request->number_id);
+        $participant = Participant::findOrFail($request->participant_id);
+
+        // Verificar que el número pertenece a la rifa
+        if ($number->raffle_id != $raffle->id) {
+            return response()->json(['error' => 'El número no pertenece a esta rifa'], 400);
+        }
+
+        // Verificar que el número pertenece al participante
+        if ($number->participant_id != $participant->id) {
+            return response()->json(['error' => 'El número no pertenece a este participante'], 400);
+        }
+
+        // Liberar el número
+        $number->participant_id = null;
+        $number->status = 'disponible';
+        $number->save();
+
+        return response()->json([
+            'success' => 'Número liberado correctamente',
+            'number' => $number->number,
+            'participant' => $participant->name
         ]);
     }
 }

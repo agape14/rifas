@@ -111,4 +111,37 @@ class ParticipantController extends Controller
 
         return redirect()->route('admin.participants.index')->with('success', 'Participante eliminado correctamente');
     }
+
+    /**
+     * Release a number from a participant
+     */
+    public function releaseNumber(Request $request, string $participantId)
+    {
+        $request->validate([
+            'number_id' => 'required|exists:numbers,id'
+        ]);
+
+        $participant = Participant::findOrFail($participantId);
+        $number = Number::findOrFail($request->number_id);
+
+        // Verificar que el número pertenece al participante
+        if ($number->participant_id != $participant->id) {
+            return response()->json(['error' => 'El número no pertenece a este participante'], 400);
+        }
+
+        // Liberar el número
+        $number->participant_id = null;
+        $number->status = 'disponible';
+        $number->save();
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => 'Número liberado correctamente',
+                'number' => $number->number,
+                'raffle' => $number->raffle->name
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Número liberado correctamente');
+    }
 }
