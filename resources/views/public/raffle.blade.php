@@ -179,9 +179,10 @@
                 body: formData
             })
             .then(response => {
-                return response.json().catch(() => {
-                    throw { error: 'Respuesta no válida del servidor' };
-                });
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
             })
             .then(data => {
                 if (data.success) {
@@ -207,18 +208,38 @@
 
                     updateStatistics();
 
+                    // Mostrar mensaje de éxito con SweetAlert2
                     let message = data.success;
                     if (data.participant_exists) {
                         message += ` - Participante existente: ${data.participant_name}`;
                     }
-                    showAlert(message, 'success');
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: message,
+                        timer: 3000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
                 } else if (data.error) {
-                    showAlert(data.error, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error,
+                        confirmButtonColor: '#d33'
+                    });
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showAlert(error.error || 'Error al procesar la solicitud', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.error || 'Error al procesar la solicitud',
+                    confirmButtonColor: '#d33'
+                });
             });
         });
 
@@ -305,6 +326,30 @@
     }
 
     function showAlert(message, type) {
+        // Usar SweetAlert2 si está disponible, sino fallback al sistema anterior
+        if (typeof Swal !== 'undefined') {
+            if (type === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: message,
+                    timer: 3000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: message,
+                    confirmButtonColor: '#d33'
+                });
+            }
+            return;
+        }
+
+        // Fallback al sistema anterior si SweetAlert2 no está disponible
         const alertDiv = document.createElement('div');
         alertDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 transform transition-all duration-300 ${
             type === 'success' ? 'bg-green-500 text-white border-l-4 border-green-700' : 'bg-red-500 text-white border-l-4 border-red-700'
@@ -383,79 +428,124 @@
 
     function releaseNumberPublic(numberId) {
         @if(!auth()->check())
-        showAlert('Debes iniciar sesión para liberar números', 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Acceso denegado',
+            text: 'Debes iniciar sesión para liberar números',
+            confirmButtonColor: '#d33'
+        });
         return;
         @endif
 
         @if(!auth()->user()->is_admin)
-        showAlert('No tienes permisos de administrador para liberar números', 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Permisos insuficientes',
+            text: 'No tienes permisos de administrador para liberar números',
+            confirmButtonColor: '#d33'
+        });
         return;
         @endif
 
-        if (confirm('¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.')) {
-            fetch("{{ route('public.raffle.releaseNumber', $raffle->id) }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    number_id: numberId
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: '¿Quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, liberar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch("{{ route('public.raffle.releaseNumber', $raffle->id) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        number_id: numberId
+                    })
                 })
-            })
-            .then(response => {
-                if (response.status === 401) {
-                    showAlert('Debes iniciar sesión para liberar números', 'error');
-                    return Promise.reject('Unauthorized');
-                }
-                if (response.status === 403) {
-                    showAlert('No tienes permisos de administrador para liberar números', 'error');
-                    return Promise.reject('Forbidden');
-                }
-                if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data && data.success) {
-                    // Actualizar el botón del número
-                    let numberContainer = document.querySelector(`.release-btn[data-number-id="${numberId}"]`).parentElement;
-                    let btn = numberContainer.querySelector('.number-btn');
-
-                    // Cambiar estilos del botón principal
-                    btn.classList.remove('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
-                    btn.classList.remove('from-yellow-400', 'to-yellow-600');
-                    btn.classList.add('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
-                    btn.setAttribute('data-status', 'disponible');
-                    btn.disabled = false;
-                    btn.title = 'Click para seleccionar';
-
-                    // Remover el botón de liberar
-                    let releaseBtn = numberContainer.querySelector('.release-btn');
-                    if (releaseBtn) {
-                        releaseBtn.remove();
+                .then(response => {
+                    if (response.status === 401) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Acceso denegado',
+                            text: 'Debes iniciar sesión para liberar números',
+                            confirmButtonColor: '#d33'
+                        });
+                        return Promise.reject('Unauthorized');
                     }
-
-                    // Actualizar estadísticas
-                    updateStatistics();
-
-                    showAlert(data.success, 'success');
-                } else if (data && data.error) {
-                    showAlert(data.error, 'error');
-                }
-            })
-            .catch(error => {
-                if (error !== 'Unauthorized' && error !== 'Forbidden') {
-                    console.error('Error:', error);
-                    if (error.error) {
-                        showAlert(error.error, 'error');
-                    } else {
-                        showAlert('Error al procesar la solicitud', 'error');
+                    if (response.status === 403) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Permisos insuficientes',
+                            text: 'No tienes permisos de administrador para liberar números',
+                            confirmButtonColor: '#d33'
+                        });
+                        return Promise.reject('Forbidden');
                     }
-                }
-            });
-        }
+                    if (!response.ok) {
+                        return response.json().then(err => Promise.reject(err));
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data && data.success) {
+                        // Actualizar el botón del número
+                        let numberContainer = document.querySelector(`.release-btn[data-number-id="${numberId}"]`).parentElement;
+                        let btn = numberContainer.querySelector('.number-btn');
+
+                        // Cambiar estilos del botón principal
+                        btn.classList.remove('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
+                        btn.classList.remove('from-yellow-400', 'to-yellow-600');
+                        btn.classList.add('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
+                        btn.setAttribute('data-status', 'disponible');
+                        btn.disabled = false;
+                        btn.title = 'Click para seleccionar';
+
+                        // Remover el botón de liberar
+                        let releaseBtn = numberContainer.querySelector('.release-btn');
+                        if (releaseBtn) {
+                            releaseBtn.remove();
+                        }
+
+                        // Actualizar estadísticas
+                        updateStatistics();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: data.success,
+                            timer: 3000,
+                            showConfirmButton: false,
+                            toast: true,
+                            position: 'top-end'
+                        });
+                    } else if (data && data.error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.error,
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                })
+                .catch(error => {
+                    if (error !== 'Unauthorized' && error !== 'Forbidden') {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: error.error || 'Error al procesar la solicitud',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                });
+            }
+        });
     }
     </script>
     @endpush
