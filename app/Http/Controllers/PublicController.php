@@ -57,7 +57,7 @@ class PublicController extends Controller
         return response()->json($statistics);
     }
 
-    // Finalizar rifa cuando se complete el sorteo
+        // Finalizar rifa cuando se complete el sorteo
     public function finishRaffle($id)
     {
         try {
@@ -72,6 +72,96 @@ class PublicController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al finalizar la rifa'
+            ], 500);
+        }
+    }
+
+    // Reservar número (para usuarios no registrados)
+    public function reserveNumber(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'number_id' => 'required|exists:numbers,id',
+                'name' => 'required|string|max:255',
+                'phone' => 'nullable|string|max:20',
+                'email' => 'nullable|email|max:255'
+            ]);
+
+            $raffle = Raffle::findOrFail($id);
+
+            // Verificar que la rifa no esté finalizada
+            if ($raffle->status === 'finalizada') {
+                return response()->json(['error' => 'Esta rifa ya ha sido finalizada y no se pueden realizar más reservas'], 400);
+            }
+
+            $number = Number::findOrFail($request->number_id);
+
+            // Verificar que el número pertenece a la rifa
+            if ($number->raffle_id != $raffle->id) {
+                return response()->json(['error' => 'El número no pertenece a esta rifa'], 400);
+            }
+
+            // Verificar que el número esté disponible
+            if ($number->status !== 'disponible') {
+                return response()->json(['error' => 'El número no está disponible'], 400);
+            }
+
+            // Buscar participante existente o crear uno nuevo
+            $participant = null;
+            $participantExists = false;
+
+            if ($request->email || $request->phone) {
+                $query = Participant::where(function($q) use ($request) {
+                    if ($request->email) {
+                        $q->where('email', $request->email);
+                    }
+                    if ($request->phone) {
+                        $q->where('phone', $request->phone);
+                    }
+                });
+
+                $participant = $query->first();
+                if ($participant) {
+                    $participantExists = true;
+                    // Actualizar información si es necesario
+                    $participant->update([
+                        'name' => $request->name,
+                        'phone' => $request->phone ?: $participant->phone,
+                        'email' => $request->email ?: $participant->email
+                    ]);
+                }
+            }
+
+            if (!$participant) {
+                // Crear nuevo participante
+                $participant = Participant::create([
+                    'name' => $request->name,
+                    'phone' => $request->phone,
+                    'email' => $request->email
+                ]);
+            }
+
+            // Reservar número al participante
+            $number->participant_id = $participant->id;
+            $number->status = 'reservado';
+            $number->save();
+
+            // Disparar evento
+            event(new NumberAssigned($number, $participant));
+
+            $message = $participantExists
+                ? "Número reservado correctamente al participante existente"
+                : "Participante registrado y número reservado correctamente";
+
+            return response()->json([
+                'success' => $message,
+                'participant_name' => $participant->name,
+                'participant_exists' => $participantExists
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error al reservar número: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Error al procesar la solicitud: ' . $e->getMessage()
             ], 500);
         }
     }

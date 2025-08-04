@@ -83,19 +83,19 @@
                 <!-- Estadísticas de números -->
                 <div class="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-8 mb-6">
                     <div class="flex items-center">
-                        <div class="w-4 h-4 bg-blue-500 rounded mr-2"></div>
+                        <div class="w-4 h-4 bg-gradient-to-br from-green-400 to-green-600 rounded mr-2"></div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Disponibles: <span class="font-bold" id="disponibles-count">{{ $raffle->numbers->where('status', 'disponible')->count() }}</span>
                         </span>
                     </div>
                     <div class="flex items-center">
-                        <div class="w-4 h-4 bg-green-500 rounded mr-2"></div>
+                        <div class="w-4 h-4 bg-gradient-to-br from-red-400 to-red-600 rounded mr-2"></div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Vendidos: <span class="font-bold" id="vendidos-count">{{ $raffle->numbers->where('status', 'pagado')->count() }}</span>
                         </span>
                     </div>
                     <div class="flex items-center">
-                        <div class="w-4 h-4 bg-yellow-500 rounded mr-2"></div>
+                        <div class="w-4 h-4 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded mr-2"></div>
                         <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Reservados: <span class="font-bold" id="reservados-count">{{ $raffle->numbers->where('status', 'reservado')->count() }}</span>
                         </span>
@@ -104,24 +104,24 @@
 
                 <!-- Cuadrícula de números -->
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-                    <div class="grid grid-cols-10 gap-3 max-w-4xl mx-auto">
+                    <div class="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2 sm:gap-3 max-w-4xl mx-auto">
                         @php
                             $numbers = $raffle->numbers->sortBy('number');
                         @endphp
                         @foreach($numbers as $number)
                             <div class="relative">
                                 <button
-                                    class="number-btn w-16 h-16 text-lg font-bold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $number->status == 'disponible' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-lg hover:shadow-xl' : ($number->status == 'pagado' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white cursor-not-allowed' : 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white cursor-not-allowed') }}"
+                                    class="number-btn w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $number->status == 'disponible' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-lg hover:shadow-xl' : ($number->status == 'pagado' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white cursor-not-allowed' : 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white cursor-not-allowed') }}"
                                     data-id="{{ $number->id }}"
                                     data-status="{{ $number->status }}"
                                     {{ $number->status != 'disponible' ? 'disabled' : '' }}
-                                    {{ !auth()->check() || !auth()->user()->is_admin ? 'disabled' : '' }}
-                                    title="{{ $number->status == 'disponible' ? (auth()->check() && auth()->user()->is_admin ? 'Click para seleccionar' : 'Solo administradores pueden asignar') : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
+                                    {{ $number->status == 'disponible' && auth()->check() && auth()->user()->is_admin ? '' : ($number->status == 'disponible' && !auth()->check() ? '' : 'disabled') }}
+                                    title="{{ $number->status == 'disponible' ? (auth()->check() && auth()->user()->is_admin ? 'Click para seleccionar' : (!auth()->check() ? 'Click para reservar' : 'Solo administradores pueden asignar')) : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
                                     {{ $number->number }}
                                 </button>
                                 @if($number->status != 'disponible' && $number->participant && auth()->check() && auth()->user()->is_admin)
                                     <button
-                                        class="release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center"
+                                        class="release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center"
                                         data-number-id="{{ $number->id }}"
                                         title="Liberar número - {{ $number->participant->name }}"
                                         onclick="releaseNumberPublic({{ $number->id }})">
@@ -132,15 +132,15 @@
                         @endforeach
                     </div>
 
-                    <!-- Mensaje para usuarios no administradores -->
+                    <!-- Mensaje para usuarios no registrados -->
                     @if(!auth()->check())
                         <div class="mt-6 text-center">
-                            <div class="bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-                                <p class="text-blue-800 dark:text-blue-200">
+                            <div class="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                                <p class="text-green-800 dark:text-green-200">
                                     <svg class="w-5 h-5 inline mr-2" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
                                     </svg>
-                                    Inicia sesión como administrador para asignar números
+                                    ¡Puedes reservar números! Haz clic en cualquier número verde para reservarlo
                                 </p>
                             </div>
                         </div>
@@ -178,33 +178,34 @@
     </div>
 
     <!-- Modal para registrar participante -->
-    <div id="numberModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div id="numberModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 p-4">
+        <div class="relative top-4 sm:top-20 mx-auto p-4 sm:p-6 border w-full max-w-sm sm:max-w-md shadow-lg rounded-md bg-white">
             <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Registrar Participante</h3>
-                <form id="numberForm" class="space-y-4">
+                <h3 class="text-lg sm:text-xl font-medium text-gray-900 mb-4" id="modalTitle">Registrar Participante</h3>
+                <form id="numberForm" class="space-y-4 sm:space-y-6">
                     <input type="hidden" id="number_id" name="number_id">
+                    <input type="hidden" id="action_type" name="action_type" value="assign">
 
                     <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">Nombre *</label>
-                        <input type="text" name="name" id="name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+                        <input type="text" name="name" id="name" class="mt-1 block w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base" required>
                     </div>
 
                     <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-700">Teléfono</label>
-                        <input type="text" name="phone" id="phone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                        <input type="tel" name="phone" id="phone" class="mt-1 block w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base">
                     </div>
 
                     <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" name="email" id="email" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" name="email" id="email" class="mt-1 block w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base">
                     </div>
 
-                    <div class="flex justify-end space-x-3 pt-4">
-                        <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                    <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+                        <button type="button" onclick="closeModal()" class="w-full sm:w-auto px-4 py-2 sm:py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 text-sm sm:text-base font-medium">
                             Cancelar
                         </button>
-                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        <button type="submit" class="w-full sm:w-auto px-4 py-2 sm:py-3 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm sm:text-base font-medium" id="submitBtn">
                             Guardar
                         </button>
                     </div>
@@ -353,9 +354,28 @@
         });
     }
 
-    // Función global para abrir modal
-    function openModal() {
-        console.log('openModal llamado');
+        // Función global para abrir modal
+    function openModal(selectedNumber) {
+        console.log('openModal llamado con número:', selectedNumber);
+
+        // Determinar si es asignación o reserva
+        const isAdmin = {{ auth()->check() && auth()->user()->is_admin ? 'true' : 'false' }};
+        const isGuest = {{ !auth()->check() ? 'true' : 'false' }};
+
+        if (isGuest) {
+            // Usuario no registrado - Reserva
+            document.getElementById('modalTitle').textContent = `Reservar Número ${selectedNumber}`;
+            document.getElementById('action_type').value = 'reserve';
+            document.getElementById('submitBtn').textContent = 'Reservar';
+            document.getElementById('submitBtn').className = 'px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700';
+        } else if (isAdmin) {
+            // Administrador - Asignación
+            document.getElementById('modalTitle').textContent = `Asignar Número ${selectedNumber}`;
+            document.getElementById('action_type').value = 'assign';
+            document.getElementById('submitBtn').textContent = 'Asignar';
+            document.getElementById('submitBtn').className = 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700';
+        }
+
         document.getElementById('numberModal').classList.remove('hidden');
     }
 
@@ -491,8 +511,9 @@
 
                 if (!this.disabled) {
                     selectedNumberId = this.getAttribute('data-id');
+                    const selectedNumber = this.textContent.trim();
                     document.getElementById('number_id').value = selectedNumberId;
-                    openModal();
+                    openModal(selectedNumber);
                 }
             });
         });
@@ -514,8 +535,15 @@
             @endif
 
             let formData = new FormData(this);
+            const actionType = formData.get('action_type');
 
-            fetch("{{ route('public.raffle.selectNumber', $raffle->id) }}", {
+            // Determinar la URL según el tipo de acción
+            let url = "{{ route('public.raffle.selectNumber', $raffle->id) }}";
+            if (actionType === 'reserve') {
+                url = "{{ route('public.raffle.reserveNumber', $raffle->id) }}";
+            }
+
+            fetch(url, {
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}'
@@ -542,22 +570,33 @@
                     closeModal();
 
                     let btn = document.querySelector(`.number-btn[data-id="${selectedNumberId}"]`);
-                    btn.classList.remove('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
-                    btn.classList.add('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
-                    btn.setAttribute('data-status', 'pagado');
-                    btn.disabled = true;
-                    btn.title = `Número vendido - ${data.participant_name || 'Participante'}`;
 
-                    @if(auth()->check() && auth()->user()->is_admin)
-                    let numberContainer = btn.parentElement;
-                    let releaseBtn = document.createElement('button');
-                    releaseBtn.className = 'release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center';
-                    releaseBtn.setAttribute('data-number-id', selectedNumberId);
-                    releaseBtn.innerHTML = '×';
-                    releaseBtn.title = `Liberar número - ${data.participant_name || 'Participante'}`;
-                    releaseBtn.onclick = function() { releaseNumberPublic(selectedNumberId); };
-                    numberContainer.appendChild(releaseBtn);
-                    @endif
+                    if (actionType === 'reserve') {
+                        // Reserva - cambiar a amarillo
+                        btn.classList.remove('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
+                        btn.classList.add('bg-gradient-to-br', 'from-yellow-400', 'to-yellow-600', 'cursor-not-allowed');
+                        btn.setAttribute('data-status', 'reservado');
+                        btn.disabled = true;
+                        btn.title = `Número reservado - ${data.participant_name || 'Participante'}`;
+                    } else {
+                        // Asignación - cambiar a rojo
+                        btn.classList.remove('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
+                        btn.classList.add('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
+                        btn.setAttribute('data-status', 'pagado');
+                        btn.disabled = true;
+                        btn.title = `Número vendido - ${data.participant_name || 'Participante'}`;
+
+                        @if(auth()->check() && auth()->user()->is_admin)
+                        let numberContainer = btn.parentElement;
+                        let releaseBtn = document.createElement('button');
+                        releaseBtn.className = 'release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center';
+                        releaseBtn.setAttribute('data-number-id', selectedNumberId);
+                        releaseBtn.innerHTML = '×';
+                        releaseBtn.title = `Liberar número - ${data.participant_name || 'Participante'}`;
+                        releaseBtn.onclick = function() { releaseNumberPublic(selectedNumberId); };
+                        numberContainer.appendChild(releaseBtn);
+                        @endif
+                    }
 
                     updateStatistics();
 

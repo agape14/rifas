@@ -2,7 +2,8 @@
 
 ## 📋 Antes del Despliegue
 
-### **Preparación Local**
+### **Preparación Local (Opcional)**
+- [ ] `git clone https://github.com/agape14/rifas.git` ejecutado
 - [ ] `composer install --optimize-autoloader --no-dev` ejecutado
 - [ ] `php artisan key:generate` ejecutado
 - [ ] `npm run build` ejecutado
@@ -17,9 +18,10 @@
 ## 🚀 Durante el Despliegue
 
 ### **Subida de Archivos**
-- [ ] Todos los archivos subidos via FTP/File Manager
-- [ ] Contenido de `public/` movido a `public_html/`
-- [ ] Resto de archivos un nivel arriba
+- [ ] Repositorio clonado desde GitHub: `https://github.com/agape14/rifas.git`
+- [ ] Archivos movidos a la ubicación correcta (public/ → public_html/)
+- [ ] Dependencias instaladas (`composer install --optimize-autoloader --no-dev`)
+- [ ] Assets compilados (`npm install && npm run build`)
 - [ ] `.env` configurado con datos correctos
 
 ### **Configuración del Servidor**
@@ -28,6 +30,9 @@
 - [ ] Enlace simbólico de storage creado
 
 ### **Comandos Ejecutados**
+- [ ] `git clone https://github.com/agape14/rifas.git` (si es primera vez)
+- [ ] `composer install --optimize-autoloader --no-dev`
+- [ ] `npm install && npm run build`
 - [ ] `php artisan migrate --force`
 - [ ] `php artisan config:cache`
 - [ ] `php artisan route:cache`

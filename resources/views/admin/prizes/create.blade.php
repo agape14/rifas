@@ -9,12 +9,12 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <form action="{{ route('admin.prizes.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <form action="{{ route('admin.prizes.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4 sm:space-y-6">
                         @csrf
 
                         <div>
-                            <x-input-label for="raffle_id" :value="__('Rifa')" />
-                            <select id="raffle_id" name="raffle_id" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>
+                            <x-input-label for="raffle_id" :value="__('Rifa')" class="text-sm sm:text-base" />
+                            <select id="raffle_id" name="raffle_id" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>
                                 <option value="">Seleccionar rifa</option>
                                 @foreach($raffles as $raffle)
                                     <option value="{{ $raffle->id }}" {{ old('raffle_id') == $raffle->id ? 'selected' : '' }}>
@@ -26,32 +26,32 @@
                         </div>
 
                         <div>
-                            <x-input-label for="name" :value="__('Nombre del Premio')" />
-                            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name')" required autofocus />
+                            <x-input-label for="name" :value="__('Nombre del Premio')" class="text-sm sm:text-base" />
+                            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('name')" required autofocus />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
                         </div>
 
                         <div>
-                            <x-input-label for="description" :value="__('Descripción')" />
-                            <textarea id="description" name="description" rows="4" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('description') }}</textarea>
+                            <x-input-label for="description" :value="__('Descripción')" class="text-sm sm:text-base" />
+                            <textarea id="description" name="description" rows="4" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('description') }}</textarea>
                             <x-input-error :messages="$errors->get('description')" class="mt-2" />
                         </div>
 
                         <div>
-                            <x-input-label for="order" :value="__('Orden')" />
-                            <x-text-input id="order" name="order" type="number" class="mt-1 block w-full" :value="old('order', 1)" required />
+                            <x-input-label for="order" :value="__('Orden')" class="text-sm sm:text-base" />
+                            <x-text-input id="order" name="order" type="number" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('order', 1)" required />
                             <x-input-error :messages="$errors->get('order')" class="mt-2" />
                         </div>
 
                         <div>
-                            <x-input-label for="image" :value="__('Imagen del Premio')" />
-                            <input type="file" id="image" name="image" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                            <x-input-label for="image" :value="__('Imagen del Premio')" class="text-sm sm:text-base" />
+                            <input type="file" id="image" name="image" accept="image/*" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
                             <x-input-error :messages="$errors->get('image')" class="mt-2" />
                         </div>
 
-                        <div class="flex items-center gap-4">
-                            <x-primary-button>{{ __('Crear Premio') }}</x-primary-button>
-                            <a href="{{ route('admin.prizes.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-300 border border-transparent rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest hover:bg-gray-400 focus:bg-gray-400 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                        <div class="flex flex-col sm:flex-row items-center gap-4 pt-4">
+                            <x-primary-button class="w-full sm:w-auto px-4 py-2 sm:py-3 text-sm sm:text-base">{{ __('Crear Premio') }}</x-primary-button>
+                            <a href="{{ route('admin.prizes.index') }}" class="w-full sm:w-auto inline-flex items-center px-4 py-2 sm:py-3 bg-gray-300 border border-transparent rounded-md font-semibold text-sm sm:text-base text-gray-700 uppercase tracking-widest hover:bg-gray-400 focus:bg-gray-400 active:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150 text-center">
                                 {{ __('Cancelar') }}
                             </a>
                         </div>

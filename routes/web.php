@@ -16,6 +16,7 @@ use App\Http\Controllers\ProfileController;
 Route::get('/', [PublicController::class, 'index'])->name('public.index'); // Lista rifas
 Route::get('/raffle/{id}', [PublicController::class, 'show'])->name('public.raffle.show'); // Vista de rifa
 Route::post('/raffle/{id}/select-number', [PublicController::class, 'selectNumber'])->name('public.raffle.selectNumber'); // Asignar número
+Route::post('/raffle/{id}/reserve-number', [PublicController::class, 'reserveNumber'])->name('public.raffle.reserveNumber'); // Reservar número
 Route::post('/raffle/{id}/test-select-number', [PublicController::class, 'testSelectNumber'])->name('public.raffle.testSelectNumber'); // Test asignar número
 Route::get('/raffle/{id}/statistics', [PublicController::class, 'getStatistics'])->name('public.raffle.statistics'); // Obtener estadísticas
 Route::post('/raffle/{id}/check-participant', [PublicController::class, 'checkParticipant'])->name('public.raffle.checkParticipant'); // Verificar participante existente
