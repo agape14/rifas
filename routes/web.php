@@ -20,13 +20,13 @@ Route::get('/draw/{id}', [PublicController::class, 'draw'])->name('public.draw')
 
 // Rutas que requieren autenticación
 Route::middleware('auth')->group(function () {
-    Route::post('/raffle/{id}/release-number', [PublicController::class, 'releaseNumber'])->name('public.raffle.releaseNumber'); // Liberar número
+    Route::post('/raffle/{id}/release-number', [PublicController::class, 'releaseNumber'])->name('public.raffle.releaseNumber')->middleware('admin'); // Liberar número - Solo admin
 });
 
 // ========================
 // RUTAS ADMIN
 // ========================
-Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function() {
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function() {
     Route::resource('raffles', RaffleController::class);
     Route::resource('prizes', PrizeController::class);
     Route::resource('numbers', NumberController::class);

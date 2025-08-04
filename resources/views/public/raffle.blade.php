@@ -80,7 +80,7 @@
                                     title="{{ $number->status == 'disponible' ? 'Click para seleccionar' : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
                                     {{ $number->number }}
                                 </button>
-                                @if($number->status != 'disponible' && $number->participant && auth()->check())
+                                @if($number->status != 'disponible' && $number->participant && auth()->check() && auth()->user()->is_admin)
                                     <button
                                         class="release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center"
                                         data-number-id="{{ $number->id }}"
@@ -178,7 +178,12 @@
                 },
                 body: formData
             })
-            .then(res => res.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     closeModal();
@@ -189,6 +194,19 @@
                     btn.classList.add('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
                     btn.setAttribute('data-status', 'pagado');
                     btn.disabled = true;
+                    btn.title = `Número vendido - ${data.participant_name || 'Participante'}`;
+
+                    @if(auth()->check() && auth()->user()->is_admin)
+                    // Agregar botón de liberar si es admin
+                    let numberContainer = btn.parentElement;
+                    let releaseBtn = document.createElement('button');
+                    releaseBtn.className = 'release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center';
+                    releaseBtn.setAttribute('data-number-id', selectedNumberId);
+                    releaseBtn.innerHTML = '×';
+                    releaseBtn.title = `Liberar número - ${data.participant_name || 'Participante'}`;
+                    releaseBtn.onclick = function() { releaseNumberPublic(selectedNumberId); };
+                    numberContainer.appendChild(releaseBtn);
+                    @endif
 
                     // Actualizar estadísticas
                     updateStatistics();
@@ -199,12 +217,17 @@
                         message += ` - Participante existente: ${data.participant_name}`;
                     }
                     showAlert(message, 'success');
-                } else {
-                    showAlert(data.error || 'Error al asignar número', 'error');
+                } else if (data.error) {
+                    showAlert(data.error, 'error');
                 }
             })
             .catch(error => {
-                showAlert('Error al procesar la solicitud', 'error');
+                console.error('Error:', error);
+                if (error.error) {
+                    showAlert(error.error, 'error');
+                } else {
+                    showAlert('Error al procesar la solicitud', 'error');
+                }
             });
         });
 
@@ -292,26 +315,65 @@
 
     function showAlert(message, type) {
         const alertDiv = document.createElement('div');
-        alertDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
-            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        alertDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 transform transition-all duration-300 ${
+            type === 'success' ? 'bg-green-500 text-white border-l-4 border-green-700' : 'bg-red-500 text-white border-l-4 border-red-700'
         }`;
-        alertDiv.textContent = message;
+        
+        alertDiv.innerHTML = `
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    ${type === 'success' 
+                        ? '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>'
+                        : '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>'
+                    }
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium">${message}</p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <button onclick="this.parentElement.parentElement.parentElement.remove()" class="text-white hover:text-gray-200">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        `;
 
         document.body.appendChild(alertDiv);
 
+        // Animación de entrada
         setTimeout(() => {
-            alertDiv.remove();
+            alertDiv.style.transform = 'translateX(0)';
+        }, 10);
+
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            alertDiv.style.transform = 'translateX(400px)';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 300);
         }, 5000);
     }
 
     function updateStatistics() {
         // Obtener estadísticas actualizadas del servidor
         fetch("{{ route('public.raffle.statistics', $raffle->id) }}")
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
             .then(data => {
+                // Actualizar contadores en el UI
                 document.getElementById('disponibles-count').textContent = data.disponibles;
                 document.getElementById('vendidos-count').textContent = data.vendidos;
                 document.getElementById('reservados-count').textContent = data.reservados;
+                
+                console.log('Estadísticas actualizadas:', data);
             })
             .catch(error => {
                 console.error('Error al obtener estadísticas:', error);
@@ -323,12 +385,19 @@
                 document.getElementById('disponibles-count').textContent = disponibles;
                 document.getElementById('vendidos-count').textContent = vendidos;
                 document.getElementById('reservados-count').textContent = reservados;
+                
+                console.log('Estadísticas calculadas localmente - Disponibles:', disponibles, 'Vendidos:', vendidos, 'Reservados:', reservados);
             });
     }
 
     function releaseNumberPublic(numberId) {
         @if(!auth()->check())
         showAlert('Debes iniciar sesión para liberar números', 'error');
+        return;
+        @endif
+        
+        @if(!auth()->user()->is_admin)
+        showAlert('No tienes permisos de administrador para liberar números', 'error');
         return;
         @endif
         
@@ -346,7 +415,14 @@
             .then(response => {
                 if (response.status === 401) {
                     showAlert('Debes iniciar sesión para liberar números', 'error');
-                    return;
+                    return Promise.reject('Unauthorized');
+                }
+                if (response.status === 403) {
+                    showAlert('No tienes permisos de administrador para liberar números', 'error');
+                    return Promise.reject('Forbidden');
+                }
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
                 }
                 return response.json();
             })
@@ -374,13 +450,19 @@
                     updateStatistics();
 
                     showAlert(data.success, 'success');
-                } else if (data) {
-                    showAlert(data.error || 'Error al liberar el número', 'error');
+                } else if (data && data.error) {
+                    showAlert(data.error, 'error');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                showAlert('Error al procesar la solicitud', 'error');
+                if (error !== 'Unauthorized' && error !== 'Forbidden') {
+                    console.error('Error:', error);
+                    if (error.error) {
+                        showAlert(error.error, 'error');
+                    } else {
+                        showAlert('Error al procesar la solicitud', 'error');
+                    }
+                }
             });
         }
     }
