@@ -71,14 +71,25 @@
                             $numbers = $raffle->numbers->sortBy('number');
                         @endphp
                         @foreach($numbers as $number)
-                            <button
-                                class="number-btn w-16 h-16 text-lg font-bold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $number->status == 'disponible' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-lg hover:shadow-xl' : ($number->status == 'pagado' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white cursor-not-allowed' : 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white cursor-not-allowed') }}"
-                                data-id="{{ $number->id }}"
-                                data-status="{{ $number->status }}"
-                                {{ $number->status != 'disponible' ? 'disabled' : '' }}
-                                title="{{ $number->status == 'disponible' ? 'Click para seleccionar' : ($number->status == 'pagado' ? 'Número vendido' : 'Número reservado') }}">
-                                {{ $number->number }}
-                            </button>
+                            <div class="relative">
+                                <button
+                                    class="number-btn w-16 h-16 text-lg font-bold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $number->status == 'disponible' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-lg hover:shadow-xl' : ($number->status == 'pagado' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white cursor-not-allowed' : 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white cursor-not-allowed') }}"
+                                    data-id="{{ $number->id }}"
+                                    data-status="{{ $number->status }}"
+                                    {{ $number->status != 'disponible' ? 'disabled' : '' }}
+                                    title="{{ $number->status == 'disponible' ? 'Click para seleccionar' : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
+                                    {{ $number->number }}
+                                </button>
+                                @if($number->status != 'disponible' && $number->participant)
+                                    <button
+                                        class="release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-5 h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center"
+                                        data-number-id="{{ $number->id }}"
+                                        title="Liberar número - {{ $number->participant->name }}"
+                                        onclick="releaseNumberPublic({{ $number->id }})">
+                                        ×
+                                    </button>
+                                @endif
+                            </div>
                         @endforeach
                     </div>
 
@@ -313,6 +324,54 @@
                 document.getElementById('vendidos-count').textContent = vendidos;
                 document.getElementById('reservados-count').textContent = reservados;
             });
+    }
+
+    function releaseNumberPublic(numberId) {
+        if (confirm('¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.')) {
+            fetch("{{ route('public.raffle.releaseNumber', $raffle->id) }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    number_id: numberId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Actualizar el botón del número
+                    let numberContainer = document.querySelector(`.release-btn[data-number-id="${numberId}"]`).parentElement;
+                    let btn = numberContainer.querySelector('.number-btn');
+                    
+                    // Cambiar estilos del botón principal
+                    btn.classList.remove('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
+                    btn.classList.remove('from-yellow-400', 'to-yellow-600');
+                    btn.classList.add('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
+                    btn.setAttribute('data-status', 'disponible');
+                    btn.disabled = false;
+                    btn.title = 'Click para seleccionar';
+                    
+                    // Remover el botón de liberar
+                    let releaseBtn = numberContainer.querySelector('.release-btn');
+                    if (releaseBtn) {
+                        releaseBtn.remove();
+                    }
+
+                    // Actualizar estadísticas
+                    updateStatistics();
+
+                    showAlert(data.success, 'success');
+                } else {
+                    showAlert(data.error || 'Error al liberar el número', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error al procesar la solicitud', 'error');
+            });
+        }
     }
     </script>
     @endpush

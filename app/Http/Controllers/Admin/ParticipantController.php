@@ -63,7 +63,7 @@ class ParticipantController extends Controller
      */
     public function edit(string $id)
     {
-        $participant = Participant::findOrFail($id);
+        $participant = Participant::with(['numbers.raffle'])->findOrFail($id);
         return view('admin.participants.edit', compact('participant'));
     }
 
@@ -110,5 +110,34 @@ class ParticipantController extends Controller
         $participant->delete();
 
         return redirect()->route('admin.participants.index')->with('success', 'Participante eliminado correctamente');
+    }
+
+    /**
+     * Release a number assigned to a participant
+     */
+    public function releaseNumber(Request $request, string $id)
+    {
+        $request->validate([
+            'number_id' => 'required|exists:numbers,id'
+        ]);
+
+        $participant = Participant::findOrFail($id);
+        $number = Number::findOrFail($request->number_id);
+
+        // Verificar que el número pertenece al participante
+        if ($number->participant_id != $participant->id) {
+            return response()->json(['error' => 'El número no pertenece a este participante'], 400);
+        }
+
+        // Liberar el número
+        $number->participant_id = null;
+        $number->status = 'disponible';
+        $number->save();
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => 'Número liberado correctamente']);
+        }
+
+        return redirect()->back()->with('success', 'Número liberado correctamente');
     }
 }
