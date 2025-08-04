@@ -180,7 +180,11 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    return response.json().then(err => Promise.reject(err));
+                    // Captura validaciones Laravel (422) y otros errores
+                    return response.json().then(err => {
+                        console.error("Respuesta de error del servidor:", err);
+                        return Promise.reject(err);
+                    });
                 }
                 return response.json();
             })
@@ -213,7 +217,7 @@
                     if (data.participant_exists) {
                         message += ` - Participante existente: ${data.participant_name}`;
                     }
-                    
+
                     Swal.fire({
                         icon: 'success',
                         title: '¡Éxito!',
@@ -234,10 +238,21 @@
             })
             .catch(error => {
                 console.error('Error:', error);
+
+                let message = 'Error al procesar la solicitud';
+                if (error.errors) {
+                    // Laravel ValidationException (422)
+                    message = Object.values(error.errors).flat().join("\n");
+                } else if (error.error) {
+                    message = error.error;
+                } else if (typeof error === 'string') {
+                    message = error;
+                }
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: error.error || 'Error al procesar la solicitud',
+                    text: message,
                     confirmButtonColor: '#d33'
                 });
             });
@@ -437,15 +452,24 @@
         return;
         @endif
 
-        @if(!auth()->user()->is_admin)
-        Swal.fire({
-            icon: 'error',
-            title: 'Permisos insuficientes',
-            text: 'No tienes permisos de administrador para liberar números',
-            confirmButtonColor: '#d33'
-        });
-        return;
+        @if(!auth()->check())
+            Swal.fire({
+                icon: 'error',
+                title: 'No autenticado',
+                text: 'Debes iniciar sesión para liberar números',
+                confirmButtonColor: '#d33'
+            });
+            return;
+        @elseif(!auth()->user()->is_admin)
+            Swal.fire({
+                icon: 'error',
+                title: 'Permisos insuficientes',
+                text: 'No tienes permisos de administrador para liberar números',
+                confirmButtonColor: '#d33'
+            });
+            return;
         @endif
+
 
         Swal.fire({
             title: '¿Estás seguro?',

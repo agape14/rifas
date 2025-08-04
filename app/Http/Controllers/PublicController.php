@@ -137,7 +137,7 @@ class PublicController extends Controller
             'success' => 'Número asignado correctamente',
             'participant_exists' => $existingParticipant ? true : false,
             'participant_name' => $participant->name
-        ]);
+        ], 200);
     }
 
     public function releaseNumber(Request $request, $id)
