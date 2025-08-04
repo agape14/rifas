@@ -91,19 +91,25 @@
                                 <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Números Asignados</h4>
                                 <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                                     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                        @foreach($participant->numbers as $number)
-                                            <div class="bg-white dark:bg-gray-600 rounded-lg p-3 text-center">
-                                                <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
-                                                    {{ $number->number }}
-                                                </div>
-                                                <div class="text-sm text-gray-600 dark:text-gray-400">
-                                                    {{ $number->raffle->name }}
-                                                </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                                    {{ ucfirst($number->status) }}
-                                                </div>
-                                            </div>
-                                        @endforeach
+                                                                @foreach($participant->numbers as $number)
+                            <div class="bg-white dark:bg-gray-600 rounded-lg p-3 text-center relative">
+                                <div class="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                                    {{ $number->number }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    {{ $number->raffle->name }}
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                    {{ ucfirst($number->status) }}
+                                </div>
+                                <button type="button" 
+                                        onclick="releaseNumber({{ $number->id }})"
+                                        class="absolute top-1 right-1 bg-red-500 hover:bg-red-700 text-white text-xs px-2 py-1 rounded-full"
+                                        title="Liberar número">
+                                    ×
+                                </button>
+                            </div>
+                        @endforeach
                                     </div>
                                 </div>
                             </div>
@@ -124,4 +130,54 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+    function releaseNumber(numberId) {
+        if (confirm('¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.')) {
+            fetch(`{{ route('admin.participants.releaseNumber', $participant->id) }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    number_id: numberId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mostrar mensaje de éxito
+                    showAlert(data.success, 'success');
+                    // Recargar la página para actualizar la lista
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showAlert(data.error || 'Error al liberar el número', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error al procesar la solicitud', 'error');
+            });
+        }
+    }
+
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `fixed top-4 right-4 p-4 rounded-md shadow-lg z-50 ${
+            type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        }`;
+        alertDiv.textContent = message;
+
+        document.body.appendChild(alertDiv);
+
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+    </script>
+    @endpush
 </x-app-layout>
