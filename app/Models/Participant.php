@@ -51,15 +51,6 @@ class Participant extends Model
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ];
 
-        // Agregar reglas únicas solo si se está creando un nuevo participante
-        if (!$participantId) {
-            $rules['email'] .= '|unique:participants,email';
-            $rules['phone'] .= '|unique:participants,phone';
-        } else {
-            $rules['email'] .= '|unique:participants,email,' . $participantId;
-            $rules['phone'] .= '|unique:participants,phone,' . $participantId;
-        }
-
         return $rules;
     }
 }

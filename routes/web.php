@@ -6,6 +6,8 @@ use App\Http\Controllers\Admin\RaffleController;
 use App\Http\Controllers\Admin\PrizeController;
 use App\Http\Controllers\Admin\NumberController;
 use App\Http\Controllers\Admin\ParticipantController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ProfileController;
 
 // ========================
@@ -14,9 +16,11 @@ use App\Http\Controllers\ProfileController;
 Route::get('/', [PublicController::class, 'index'])->name('public.index'); // Lista rifas
 Route::get('/raffle/{id}', [PublicController::class, 'show'])->name('public.raffle.show'); // Vista de rifa
 Route::post('/raffle/{id}/select-number', [PublicController::class, 'selectNumber'])->name('public.raffle.selectNumber'); // Asignar número
+Route::post('/raffle/{id}/test-select-number', [PublicController::class, 'testSelectNumber'])->name('public.raffle.testSelectNumber'); // Test asignar número
 Route::get('/raffle/{id}/statistics', [PublicController::class, 'getStatistics'])->name('public.raffle.statistics'); // Obtener estadísticas
 Route::post('/raffle/{id}/check-participant', [PublicController::class, 'checkParticipant'])->name('public.raffle.checkParticipant'); // Verificar participante existente
 Route::get('/draw/{id}', [PublicController::class, 'draw'])->name('public.draw'); // Vista del sorteo
+Route::post('/raffle/{id}/finish', [PublicController::class, 'finishRaffle'])->name('public.raffle.finish'); // Finalizar rifa
 
 // Rutas que requieren autenticación
 Route::middleware('auth')->group(function () {
@@ -27,11 +31,15 @@ Route::middleware('auth')->group(function () {
 // RUTAS ADMIN
 // ========================
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function() {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard'); // Panel de control
+    Route::get('/statistics', [DashboardController::class, 'statistics'])->name('statistics'); // Estadísticas AJAX
+
     Route::resource('raffles', RaffleController::class);
     Route::resource('prizes', PrizeController::class);
     Route::resource('numbers', NumberController::class);
     Route::resource('participants', ParticipantController::class);
-    
+    Route::resource('users', UserController::class);
+
     // Ruta para liberar números de un participante
     Route::post('participants/{participant}/release-number', [ParticipantController::class, 'releaseNumber'])->name('participants.releaseNumber');
 });

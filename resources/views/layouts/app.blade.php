@@ -13,6 +13,9 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        <!-- SweetAlert2 -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -32,5 +35,47 @@
                 {{ $slot }}
             </main>
         </div>
+
+        <script>
+        // Theme toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+            const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+
+            if (themeToggleBtn && themeToggleLightIcon && themeToggleDarkIcon) {
+                // Check for saved theme preference or default to system preference
+                const savedTheme = localStorage.getItem('color-theme');
+                const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+                // Set initial theme
+                if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                    document.documentElement.classList.add('dark');
+                    themeToggleDarkIcon.classList.remove('hidden');
+                    themeToggleLightIcon.classList.add('hidden');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    themeToggleLightIcon.classList.remove('hidden');
+                    themeToggleDarkIcon.classList.add('hidden');
+                }
+
+                // Toggle theme
+                themeToggleBtn.addEventListener('click', function() {
+                    // Toggle theme
+                    if (document.documentElement.classList.contains('dark')) {
+                        document.documentElement.classList.remove('dark');
+                        localStorage.setItem('color-theme', 'light');
+                        themeToggleLightIcon.classList.remove('hidden');
+                        themeToggleDarkIcon.classList.add('hidden');
+                    } else {
+                        document.documentElement.classList.add('dark');
+                        localStorage.setItem('color-theme', 'dark');
+                        themeToggleDarkIcon.classList.remove('hidden');
+                        themeToggleLightIcon.classList.add('hidden');
+                    }
+                });
+            }
+        });
+        </script>
     </body>
 </html>
