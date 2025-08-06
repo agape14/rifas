@@ -20,7 +20,10 @@
 
                         <div>
                             <x-input-label for="description" :value="__('Descripción')" class="text-sm sm:text-base" />
-                            <textarea id="description" name="description" rows="4" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>{{ old('description') }}</textarea>
+                            <div class="mt-1">
+                                <textarea id="description" name="description" rows="6" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>{{ old('description') }}</textarea>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Puedes usar HTML para formatear el texto (negritas, cursivas, enlaces, etc.)</p>
                             <x-input-error :messages="$errors->get('description')" class="mt-2" />
                         </div>
 

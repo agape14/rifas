@@ -189,6 +189,62 @@
             box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
 
+        /* Estilos para la descripción con HTML */
+        .prose {
+            line-height: 1.6;
+        }
+
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            font-weight: 600;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+
+        .prose h1 { font-size: 1.5em; }
+        .prose h2 { font-size: 1.25em; }
+        .prose h3 { font-size: 1.125em; }
+
+        .prose p {
+            margin-bottom: 1em;
+        }
+
+        .prose ul, .prose ol {
+            margin-bottom: 1em;
+            padding-left: 1.5em;
+        }
+
+        .prose li {
+            margin-bottom: 0.25em;
+        }
+
+        .prose strong {
+            font-weight: 600;
+        }
+
+        .prose em {
+            font-style: italic;
+        }
+
+        .prose a {
+            color: #3b82f6;
+            text-decoration: underline;
+        }
+
+        .prose a:hover {
+            color: #2563eb;
+        }
+
+        .prose blockquote {
+            border-left: 4px solid #e5e7eb;
+            padding-left: 1em;
+            margin: 1em 0;
+            font-style: italic;
+        }
+
+        .dark .prose blockquote {
+            border-left-color: #4b5563;
+        }
+
         /* Estilos para el modal de ganador */
         .winner-modal {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -245,9 +301,18 @@
                 <h1 class="text-4xl font-bold mb-4" style="color: {{ $raffle->theme_color ?? '#000' }}">
                     {{ $raffle->name }}
                 </h1>
-                <p class="text-xl text-gray-600 dark:text-gray-400 mb-6">
+                <p class="text-xl text-gray-600 dark:text-gray-400 mb-4">
                     Fecha del sorteo: {{ \Carbon\Carbon::parse($raffle->draw_date)->format('d/m/Y H:i') }}
                 </p>
+
+                <!-- Descripción de la rifa -->
+                @if($raffle->description)
+                    <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg mx-4 sm:mx-0">
+                        <div class="prose prose-sm sm:prose-base max-w-none text-gray-700 dark:text-gray-300">
+                            {!! $raffle->description !!}
+                        </div>
+                    </div>
+                @endif
 
                 <!-- Estado de la rifa -->
                 @if($raffle->status === 'finalizada')
@@ -263,7 +328,7 @@
 
                 <!-- Estado del sorteo -->
                 <div class="mb-6">
-                    <span id="draw-status" class="px-4 py-2 rounded-full text-sm font-semibold">
+                    <span id="draw-status" class="px-4 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                         <span id="status-text">Listo para comenzar</span>
                     </span>
                 </div>
