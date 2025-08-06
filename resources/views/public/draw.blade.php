@@ -24,11 +24,222 @@
             from { text-shadow: 0 0 20px #10B981; }
             to { text-shadow: 0 0 30px #10B981, 0 0 40px #10B981; }
         }
+
+                                /* Estilos para la ruleta */
+        .wheel-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #2d3748;
+        }
+
+        .wheel-segment {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: 100% 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .wheel-segment::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: inherit;
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+            z-index: -1;
+        }
+
+        .wheel-segment:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .wheel-segment.yellow {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+
+        .wheel-segment.red {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .wheel-segment.blue {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        }
+
+        .wheel-segment.purple {
+            background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+        }
+
+        .wheel-segment.green {
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+        }
+
+        .wheel-segment.orange {
+            background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+        }
+
+        .wheel-spinning {
+            animation: wheelSpin 0.05s linear infinite;
+        }
+
+        .wheel-spinning svg {
+            animation: wheelSpin 0.05s linear infinite;
+        }
+
+        @keyframes wheelSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Estilos para el indicador/bache */
+        .wheel-indicator {
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 16px solid transparent;
+            border-right: 16px solid transparent;
+            border-bottom: 24px solid #dc2626;
+            z-index: 30;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+        }
+
+        .wheel-indicator-dot {
+            position: absolute;
+            top: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 8px;
+            background: #dc2626;
+            border-radius: 50%;
+            z-index: 30;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        .wheel-indicator::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-bottom: 18px solid #b91c1c;
+            z-index: 31;
+        }
+
+                .winner-segment {
+            animation: winnerPulse 1s ease-in-out infinite alternate;
+            box-shadow: 0 0 20px #10B981;
+        }
+
+        @keyframes winnerPulse {
+            from {
+                transform: scale(1);
+                box-shadow: 0 0 20px #10B981;
+            }
+            to {
+                transform: scale(1.1);
+                box-shadow: 0 0 30px #10B981, 0 0 40px #10B981;
+            }
+        }
+
+        /* Efecto para números no ganadores */
+        .wheel-segment-svg.loser {
+            filter: grayscale(100%) brightness(0.3) !important;
+            transition: filter 0.5s ease;
+        }
+
+        /* Efecto para el ganador */
+        .wheel-segment-svg.winner {
+            filter: drop-shadow(0 0 20px #10B981) !important;
+            animation: winnerPulse 1s ease-in-out infinite alternate;
+        }
+
+        /* Estilos para el modal del ganador */
+        .winner-modal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: 3px solid #fff;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .winner-number-display {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            border: 3px solid #fff;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* Estilos para el modal de ganador */
+        .winner-modal {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .winner-number-display {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #10B981;
+            text-shadow: 0 0 20px #10B981;
+        }
+
+        /* Animaciones para el modal */
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-bounce {
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(0,0,0);
+            }
+            40%, 43% {
+                transform: translate3d(0, -30px, 0);
+            }
+            70% {
+                transform: translate3d(0, -15px, 0);
+            }
+            90% {
+                transform: translate3d(0, -4px, 0);
+            }
+        }
     </style>
     @endpush
 
     <div class="py-6">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <!-- Información del sorteo -->
             <div class="text-center mb-8">
                 <h1 class="text-4xl font-bold mb-4" style="color: {{ $raffle->theme_color ?? '#000' }}">
@@ -62,13 +273,13 @@
             @if($raffle->prizes->count() > 0)
                 <div class="mb-8">
                     <h3 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6 text-center">Premios</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                         @foreach($raffle->prizes as $prize)
-                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-lg sm:rounded-lg border-2 border-transparent prize-card" data-prize-id="{{ $prize->id }}">
+                            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-lg sm:rounded-lg border-2 border-transparent prize-card mx-2 sm:mx-0" data-prize-id="{{ $prize->id }}">
                                 @if($prize->image)
                                     <img src="{{ asset('storage/' . $prize->image) }}" class="w-full h-48 object-cover" alt="{{ $prize->name }}">
                                 @endif
-                                <div class="p-4">
+                                <div class="p-4 sm:p-6">
                                     <h5 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{{ $prize->name }}</h5>
                                     <p class="text-gray-600 dark:text-gray-400">{{ $prize->description }}</p>
                                     <div class="mt-3">
@@ -84,38 +295,58 @@
             @endif
 
             <!-- Ruleta del sorteo -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 mb-8">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4 sm:p-6 lg:p-8 mb-8 mx-2 sm:mx-0">
                 <div class="text-center mb-6">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Ruleta del Sorteo</h3>
                     <p class="text-gray-600 dark:text-gray-400">Números participantes: <span id="participant-count">{{ $raffle->numbers->where('status', 'pagado')->count() }}</span></p>
                 </div>
 
-                <!-- Número actual en la ruleta -->
-                <div class="text-center mb-8">
-                    <div id="current-number" class="text-8xl font-bold text-indigo-600 dark:text-indigo-400 mb-4">
-                        ?
+                                                                <!-- Ruleta visual -->
+                <div class="flex justify-center mb-8">
+                    <div class="relative w-80 h-80 sm:w-96 sm:h-96">
+                        <!-- Círculo exterior de la ruleta -->
+                        <div class="absolute inset-0 border-8 border-gray-400 rounded-full bg-gray-200 shadow-xl"></div>
+
+                        <!-- Contenedor de la ruleta -->
+                        <div id="wheel-container" class="absolute inset-4 rounded-full overflow-hidden">
+                            <!-- La ruleta se generará dinámicamente -->
+                        </div>
+
+                        <!-- Centro de la ruleta -->
+                        <div class="absolute inset-1/4 bg-white dark:bg-gray-800 rounded-full border-4 border-indigo-600 dark:border-indigo-400 flex items-center justify-center shadow-lg z-20">
+                            <div class="text-center">
+                                <div id="current-number" class="text-3xl sm:text-5xl font-bold text-indigo-600 dark:text-indigo-400 mb-1">
+                                    ?
+                                </div>
+                                <div id="current-participant" class="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                    Esperando sorteo...
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Indicador/Bache para detener la ruleta -->
+                        <div class="wheel-indicator"></div>
+                        <div class="wheel-indicator-dot"></div>
                     </div>
-                    <div id="current-participant" class="text-xl text-gray-600 dark:text-gray-400">
-                        Esperando sorteo...
-                    </div>
+                </div>
                 </div>
 
                 <!-- Controles del sorteo -->
-                <div class="flex justify-center space-x-4 mb-6">
-                    <button id="start-draw" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200">
+                <div class="flex flex-col sm:flex-row justify-center space-y-2 sm:space-y-0 sm:space-x-4 mb-6">
+                    <button id="start-draw" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 text-sm sm:text-base">
                         Iniciar Sorteo
                     </button>
-                    <button id="stop-draw" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 hidden">
+                    <button id="stop-draw" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 hidden text-sm sm:text-base">
                         Detener Sorteo
                     </button>
-                    <button id="next-prize" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 hidden">
+                    <button id="next-prize" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 hidden text-sm sm:text-base">
                         Siguiente Premio
                     </button>
                 </div>
 
                 <!-- Progreso del sorteo -->
                 <div class="mb-6">
-                    <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <div class="flex flex-col sm:flex-row justify-between text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 space-y-1 sm:space-y-0">
                         <span>Premio actual: <span id="current-prize-name">-</span></span>
                         <span><span id="current-prize-index">0</span> de {{ $raffle->prizes->count() }}</span>
                     </div>
@@ -126,7 +357,7 @@
             </div>
 
             <!-- Historial de ganadores -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 mx-4 sm:mx-0">
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Ganadores</h3>
                 <div id="winners-list" class="space-y-3">
                     <!-- Los ganadores se mostrarán aquí dinámicamente -->
@@ -136,17 +367,17 @@
     </div>
 
     <!-- Modal de felicitaciones -->
-    <div id="congratulations-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md mx-4 text-center">
+    <div id="congratulations-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="winner-modal rounded-lg p-8 max-w-md mx-4 text-center text-white shadow-2xl">
             <div class="mb-6">
-                <div class="text-6xl mb-4">🎉</div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">¡Felicitaciones!</h3>
-                <p class="text-gray-600 dark:text-gray-400 mb-4">Número ganador:</p>
-                <div id="winner-number" class="text-4xl font-bold text-indigo-600 dark:text-indigo-400 mb-2"></div>
-                <div id="winner-name" class="text-xl text-gray-700 dark:text-gray-300 mb-4"></div>
-                <div id="winner-prize" class="text-lg font-semibold text-green-600 dark:text-green-400"></div>
+                <div class="text-6xl mb-4 animate-bounce">🎉</div>
+                <h3 class="text-2xl font-bold mb-2">¡Felicitaciones!</h3>
+                <p class="text-white/90 mb-4">Número ganador:</p>
+                <div id="winner-number" class="winner-number-display mb-2"></div>
+                <div id="winner-name" class="text-xl mb-4 text-white"></div>
+                <div id="winner-prize" class="text-lg font-semibold text-yellow-300"></div>
             </div>
-            <button id="close-congratulations" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition-colors duration-200">
+            <button id="close-congratulations" class="bg-white text-indigo-600 hover:bg-gray-100 font-bold py-3 px-8 rounded-lg transition-colors duration-200 shadow-lg">
                 Continuar
             </button>
         </div>
@@ -182,6 +413,7 @@
         // Inicializar
         updatePrizeInfo();
         updateProgress();
+        createWheel();
 
         // Event listeners
         startDrawBtn.addEventListener('click', startDraw);
@@ -195,6 +427,168 @@
         startDrawBtn.classList.add('opacity-50', 'cursor-not-allowed');
         startDrawBtn.textContent = 'Sorteo Finalizado';
         @endif
+
+                        // Función para crear la ruleta visual
+        function createWheel() {
+            const wheelContainer = document.getElementById('wheel-container');
+            if (!wheelContainer) {
+                console.error('No se encontró el contenedor de la ruleta');
+                return;
+            }
+
+            console.log('Creando ruleta con', availableNumbers.length, 'segmentos');
+            wheelContainer.innerHTML = '';
+
+            const colors = ['yellow', 'red', 'blue', 'purple', 'green', 'orange'];
+            const totalSegments = availableNumbers.length;
+            const anglePerSegment = 360 / totalSegments;
+            const radius = 150; // Radio del círculo
+
+            // Crear SVG para la ruleta
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', '0 0 300 300');
+            svg.style.transform = 'rotate(-90deg)'; // Rotar para que el primer segmento esté arriba
+
+            // Agregar definiciones de gradientes
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+
+            const gradients = {
+                yellow: ['#fbbf24', '#f59e0b'],
+                red: ['#ef4444', '#dc2626'],
+                blue: ['#60a5fa', '#3b82f6'],
+                purple: ['#a78bfa', '#8b5cf6'],
+                green: ['#34d399', '#10b981'],
+                orange: ['#fb923c', '#f97316']
+            };
+
+            Object.keys(gradients).forEach(colorName => {
+                const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+                gradient.setAttribute('id', colorName + 'Gradient');
+                gradient.setAttribute('x1', '0%');
+                gradient.setAttribute('y1', '0%');
+                gradient.setAttribute('x2', '100%');
+                gradient.setAttribute('y2', '100%');
+
+                const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop1.setAttribute('offset', '0%');
+                stop1.setAttribute('stop-color', gradients[colorName][0]);
+
+                const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+                stop2.setAttribute('offset', '100%');
+                stop2.setAttribute('stop-color', gradients[colorName][1]);
+
+                gradient.appendChild(stop1);
+                gradient.appendChild(stop2);
+                defs.appendChild(gradient);
+            });
+
+            svg.appendChild(defs);
+
+            availableNumbers.forEach((participant, index) => {
+                const startAngle = index * anglePerSegment;
+                const endAngle = (index + 1) * anglePerSegment;
+                const colorIndex = index % colors.length;
+                const color = colors[colorIndex];
+
+                // Calcular coordenadas del arco
+                const startRad = (startAngle - 90) * Math.PI / 180;
+                const endRad = (endAngle - 90) * Math.PI / 180;
+
+                const x1 = 150 + radius * Math.cos(startRad);
+                const y1 = 150 + radius * Math.sin(startRad);
+                const x2 = 150 + radius * Math.cos(endRad);
+                const y2 = 150 + radius * Math.sin(endRad);
+
+                // Crear el segmento
+                const largeArcFlag = anglePerSegment > 180 ? 1 : 0;
+                const pathData = `M 150 150 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', `url(#${color}Gradient)`);
+                path.setAttribute('stroke', 'rgba(255,255,255,0.3)');
+                path.setAttribute('stroke-width', '2');
+                path.dataset.number = participant.number;
+                path.dataset.participant = participant.participant_name;
+                path.dataset.index = index;
+                path.classList.add('wheel-segment-svg');
+
+                // Agregar texto al segmento
+                const textAngle = (startAngle + endAngle) / 2;
+                const textRad = (textAngle - 90) * Math.PI / 180;
+                const textRadius = radius * 0.7;
+                const textX = 150 + textRadius * Math.cos(textRad);
+                const textY = 150 + textRadius * Math.sin(textRad);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', textX);
+                text.setAttribute('y', textY);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('dominant-baseline', 'middle');
+                text.setAttribute('fill', 'white');
+                text.setAttribute('font-size', '16');
+                text.setAttribute('font-weight', 'bold');
+                text.setAttribute('text-shadow', '2px 2px 4px rgba(0,0,0,0.8)');
+                text.textContent = participant.number;
+
+                svg.appendChild(path);
+                svg.appendChild(text);
+            });
+
+            wheelContainer.appendChild(svg);
+            console.log('Ruleta creada con', availableNumbers.length, 'segmentos');
+        }
+
+        // Función para obtener el valor del color
+        function getColorValue(colorName) {
+            const colors = {
+                yellow: 'url(#yellowGradient)',
+                red: 'url(#redGradient)',
+                blue: 'url(#blueGradient)',
+                purple: 'url(#purpleGradient)',
+                green: 'url(#greenGradient)',
+                orange: 'url(#orangeGradient)'
+            };
+            return colors[colorName] || '#666';
+        }
+
+        // Función para resetear la ruleta
+        function resetWheel() {
+            const wheelContainer = document.getElementById('wheel-container');
+            const svg = wheelContainer.querySelector('svg');
+            if (svg) {
+                svg.style.transition = 'none';
+                svg.style.transform = 'rotate(-90deg)';
+                // Forzar reflow
+                svg.offsetHeight;
+                svg.style.transition = '';
+            }
+        }
+
+        // Función para refrescar participantes
+        function refreshParticipants() {
+            // Obtener números que ya han ganado
+            const wonNumbers = winners.map(w => w.number);
+
+            // Filtrar participantes que no han ganado
+            availableNumbers = participants.filter(p => !wonNumbers.includes(p.number));
+
+            console.log('Participantes refrescados:', availableNumbers.length);
+            console.log('Números ganados:', wonNumbers);
+
+            // Actualizar contador
+            participantCount.textContent = availableNumbers.length;
+        }
+
+        // Función para obtener texto ordinal
+        function getOrdinalText(num) {
+            if (num === 1) return '1er';
+            if (num === 2) return '2do';
+            if (num === 3) return '3er';
+            return num + 'to';
+        }
 
         function startDraw() {
             // Verificar si la rifa está finalizada
@@ -219,52 +613,108 @@
             statusText.textContent = 'Sorteando...';
             drawStatus.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
 
-            // Iniciar animación de la ruleta con velocidad variable
-            let speed = 50; // Velocidad inicial rápida
-            let duration = 3000; // Duración total de la animación (3 segundos)
-            let startTime = Date.now();
+            // Resetear centro de la ruleta para nuevo sorteo
+            currentNumber.textContent = '?';
+            currentParticipant.textContent = 'Girando...';
 
-            // Agregar efecto de rotación
-            currentNumber.classList.add('wheel-spin');
+            // Limpiar clases de efectos visuales
+            const allSegments = document.querySelectorAll('.wheel-segment-svg');
+            allSegments.forEach(segment => {
+                segment.classList.remove('winner', 'loser', 'winner-segment');
+            });
 
-            drawInterval = setInterval(() => {
-                const elapsed = Date.now() - startTime;
-                const progress = elapsed / duration;
+                        // Seleccionar ganador aleatorio con mejor aleatoriedad
+            const timestamp = Date.now();
+            const randomSeed = (timestamp % 1000000) / 1000000;
+            const winnerIndex = Math.floor(randomSeed * availableNumbers.length);
+            const winner = availableNumbers[winnerIndex];
 
-                // Aumentar la velocidad gradualmente para crear efecto de desaceleración
-                speed = 50 + (progress * 200);
+            console.log('Números disponibles:', availableNumbers.length);
+            console.log('Timestamp:', timestamp, 'Seed:', randomSeed);
+            console.log('Ganador seleccionado:', winner.number, 'Índice:', winnerIndex);
 
-                const randomIndex = Math.floor(Math.random() * availableNumbers.length);
-                const randomNumber = availableNumbers[randomIndex];
+            // Calcular ángulo de parada para que el ganador se detenga en el indicador
+            const anglePerSegment = 360 / availableNumbers.length;
+            const winnerAngle = winnerIndex * anglePerSegment;
+            const stopAngle = 360 - winnerAngle; // El indicador está en la parte superior (0 grados)
 
-                currentNumber.textContent = randomNumber.number;
-                currentParticipant.textContent = randomNumber.participant_name;
+            // Iniciar animación de la ruleta
+            const wheelContainer = document.getElementById('wheel-container');
+            const svg = wheelContainer.querySelector('svg');
 
-                // Detener automáticamente después de la duración especificada
-                if (elapsed >= duration) {
-                    clearInterval(drawInterval);
-                    currentNumber.classList.remove('wheel-spin');
-                    setTimeout(() => {
-                        stopDraw();
-                    }, 500); // Pequeña pausa antes de mostrar el ganador
+            if (svg) {
+                // Obtener la rotación actual
+                const currentTransform = svg.style.transform;
+                let currentRotation = 0;
+
+                if (currentTransform) {
+                    const match = currentTransform.match(/rotate\(([^)]+)deg\)/);
+                    if (match) {
+                        currentRotation = parseFloat(match[1]) || 0;
+                    }
                 }
-            }, speed);
+
+                // Configurar la animación
+                const additionalRotation = 360 * 5 + stopAngle; // 5 vueltas completas + ángulo de parada
+                const newRotation = currentRotation + additionalRotation;
+                const duration = 4000; // 4 segundos
+
+                console.log('Rotación actual:', currentRotation, 'Nueva rotación:', newRotation, 'Ganador:', winner.number);
+
+                svg.style.transition = `transform ${duration}ms cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                svg.style.transform = `rotate(-90deg) rotate(${newRotation}deg)`;
+
+                console.log('Animación de ruleta iniciada');
+
+                // Detener automáticamente después de la duración
+                setTimeout(() => {
+                    stopDraw();
+                }, duration + 500);
+            }
         }
 
         function stopDraw() {
             isDrawing = false;
             clearInterval(drawInterval);
 
+            // Detener la animación de la ruleta
+            const wheelContainer = document.getElementById('wheel-container');
+            const svg = wheelContainer.querySelector('svg');
+            if (svg) {
+                svg.style.transition = '';
+            }
+
             stopDrawBtn.classList.add('hidden');
             nextPrizeBtn.classList.remove('hidden');
             statusText.textContent = '¡Ganador seleccionado!';
             drawStatus.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
 
-            // Seleccionar ganador
+            // Usar el ganador predefinido del sorteo (no recalcular)
             const winnerIndex = Math.floor(Math.random() * availableNumbers.length);
             const winner = availableNumbers[winnerIndex];
 
-            // Efecto visual de celebración
+            console.log('Ganador final:', winner.number);
+
+            // Eliminar el número ganado de la lista disponible (SOLO UNA VEZ)
+            availableNumbers.splice(winnerIndex, 1);
+            console.log('Números restantes:', availableNumbers.length);
+
+            // Efecto visual de celebración en la ruleta
+            const winnerSegmentElement = document.querySelector(`[data-number="${winner.number}"]`);
+            if (winnerSegmentElement) {
+                winnerSegmentElement.classList.add('winner-segment', 'winner');
+            }
+
+            // Efecto visual: solo el ganador brilla
+            const allSegments = document.querySelectorAll('.wheel-segment-svg');
+            allSegments.forEach(segment => {
+                if (segment.dataset.number !== winner.number) {
+                    // Mantener colores originales, solo agregar clase para tracking
+                    segment.classList.add('loser');
+                }
+            });
+
+            // Efecto visual de celebración en el centro
             currentNumber.style.transform = 'scale(1.2)';
             currentNumber.style.transition = 'transform 0.3s ease';
             setTimeout(() => {
@@ -291,8 +741,7 @@
                 showCongratulations(winner, prizes[currentPrizeIndex]);
             }, 1000); // Mostrar modal después de 1 segundo
 
-            // Remover número del array disponible
-            availableNumbers.splice(winnerIndex, 1);
+            // Actualizar contador de participantes
             participantCount.textContent = availableNumbers.length;
 
             // Actualizar tarjeta del premio
@@ -302,6 +751,12 @@
             setTimeout(() => {
                 currentNumber.style.color = '';
                 currentNumber.classList.remove('winner-glow');
+
+                // Limpiar clases de efectos visuales
+                const allSegments = document.querySelectorAll('.wheel-segment-svg');
+                allSegments.forEach(segment => {
+                    segment.classList.remove('winner', 'loser', 'winner-segment');
+                });
             }, 3000);
         }
 
@@ -309,6 +764,16 @@
             currentPrizeIndex++;
             updatePrizeInfo();
             updateProgress();
+
+            // Refrescar participantes y recrear ruleta
+            refreshParticipants();
+            resetWheel();
+            createWheel();
+
+            // Resetear el centro de la ruleta
+            currentNumber.textContent = '?';
+            const ordinalText = getOrdinalText(currentPrizeIndex + 1);
+            currentParticipant.textContent = `Esperando ${ordinalText} ganador...`;
 
             nextPrizeBtn.classList.add('hidden');
             startDrawBtn.classList.remove('hidden');
@@ -364,10 +829,29 @@
         }
 
         function showCongratulations(winner, prize) {
-            document.getElementById('winner-number').textContent = winner.number;
-            document.getElementById('winner-name').textContent = winner.participant_name;
-            document.getElementById('winner-prize').textContent = prize.name;
-            document.getElementById('congratulations-modal').classList.remove('hidden');
+            const modal = document.getElementById('congratulations-modal');
+            const winnerNumber = document.getElementById('winner-number');
+            const winnerName = document.getElementById('winner-name');
+            const winnerPrize = document.getElementById('winner-prize');
+
+            // Configurar contenido
+            winnerNumber.textContent = winner.number;
+            winnerName.textContent = winner.participant_name;
+            winnerPrize.textContent = prize.name;
+
+            // Mostrar modal con animación
+            modal.classList.remove('hidden');
+            modal.classList.add('animate-fadeIn');
+
+            // Efecto de entrada para el número ganador
+            winnerNumber.style.opacity = '0';
+            winnerNumber.style.transform = 'scale(0.5)';
+
+            setTimeout(() => {
+                winnerNumber.style.transition = 'all 0.5s ease';
+                winnerNumber.style.opacity = '1';
+                winnerNumber.style.transform = 'scale(1)';
+            }, 100);
         }
 
         function closeCongratulations() {

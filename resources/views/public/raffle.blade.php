@@ -17,6 +17,14 @@
                     Fecha del sorteo: {{ \Carbon\Carbon::parse($raffle->draw_date)->format('d/m/Y') }}
                 </p>
 
+                @if($raffle->description)
+                    <div class="mt-4 max-w-2xl mx-auto">
+                        <p class="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed">
+                            {{ $raffle->description }}
+                        </p>
+                    </div>
+                @endif
+
                 <!-- Estado de la rifa -->
                 @if($raffle->status === 'finalizada')
                     <div class="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
