@@ -54,6 +54,18 @@
                                            class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                             Editar
                                         </a>
+                                        <a href="{{ route('admin.raffles.qr', $raffle) }}"
+                                           class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                            QR
+                                        </a>
+                                        <a href="{{ route('admin.raffles.poster', $raffle) }}"
+                                           class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
+                                            Poster
+                                        </a>
+                                        <a href="{{ route('admin.numbers.index', ['raffle_id' => $raffle->id]) }}"
+                                           class="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
+                                            Números
+                                        </a>
                                         <form action="{{ route('admin.raffles.destroy', $raffle->id) }}" method="POST" class="inline">
                                             @csrf @method('DELETE')
                                             <button type="submit"

@@ -6,8 +6,9 @@ use App\Http\Controllers\Admin\RaffleController;
 use App\Http\Controllers\Admin\PrizeController;
 use App\Http\Controllers\Admin\NumberController;
 use App\Http\Controllers\Admin\ParticipantController;
-use App\Http\Controllers\Admin\DashboardController;
-use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController; // legacy if needed
+use App\Http\Controllers\DashboardController; // unified
+use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\ProfileController;
 
 // ========================
@@ -16,12 +17,11 @@ use App\Http\Controllers\ProfileController;
 Route::get('/', [PublicController::class, 'index'])->name('public.index'); // Lista rifas
 Route::get('/raffle/{id}', [PublicController::class, 'show'])->name('public.raffle.show'); // Vista de rifa
 Route::post('/raffle/{id}/select-number', [PublicController::class, 'selectNumber'])->name('public.raffle.selectNumber'); // Asignar número
-Route::post('/raffle/{id}/reserve-number', [PublicController::class, 'reserveNumber'])->name('public.raffle.reserveNumber'); // Reservar número
 Route::post('/raffle/{id}/test-select-number', [PublicController::class, 'testSelectNumber'])->name('public.raffle.testSelectNumber'); // Test asignar número
 Route::get('/raffle/{id}/statistics', [PublicController::class, 'getStatistics'])->name('public.raffle.statistics'); // Obtener estadísticas
 Route::post('/raffle/{id}/check-participant', [PublicController::class, 'checkParticipant'])->name('public.raffle.checkParticipant'); // Verificar participante existente
 Route::get('/draw/{id}', [PublicController::class, 'draw'])->name('public.draw'); // Vista del sorteo
-Route::post('/raffle/{id}/finish', [PublicController::class, 'finishRaffle'])->name('public.raffle.finish'); // Finalizar rifa
+Route::post('/raffle/{id}/reserve-number', [PublicController::class, 'reserveNumber'])->name('public.raffle.reserveNumber');
 
 // Rutas que requieren autenticación
 Route::middleware('auth')->group(function () {
@@ -32,17 +32,25 @@ Route::middleware('auth')->group(function () {
 // RUTAS ADMIN
 // ========================
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function() {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard'); // Panel de control
-    Route::get('/statistics', [DashboardController::class, 'statistics'])->name('statistics'); // Estadísticas AJAX
+    // Redirigir dashboard admin al dashboard unificado
+    Route::get('/dashboard', function() { return redirect()->route('dashboard'); })->name('dashboard');
+
+    // Reportes
+    Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
+    Route::get('/reports/raffles/{raffle}', [ReportsController::class, 'raffle'])->name('reports.raffle');
+    Route::get('/reports/export/csv', [ReportsController::class, 'exportCsv'])->name('reports.export.csv');
 
     Route::resource('raffles', RaffleController::class);
     Route::resource('prizes', PrizeController::class);
     Route::resource('numbers', NumberController::class);
     Route::resource('participants', ParticipantController::class);
-    Route::resource('users', UserController::class);
 
     // Ruta para liberar números de un participante
     Route::post('participants/{participant}/release-number', [ParticipantController::class, 'releaseNumber'])->name('participants.releaseNumber');
+    Route::post('numbers/{number}/mark-paid', [NumberController::class, 'markPaid'])->name('numbers.markPaid');
+    Route::post('numbers/{number}/release', [NumberController::class, 'release'])->name('numbers.release');
+    Route::get('raffles/{raffle}/qr', [RaffleController::class, 'qr'])->name('raffles.qr');
+    Route::get('raffles/{raffle}/poster', [RaffleController::class, 'poster'])->name('raffles.poster');
 });
 
 // ========================
@@ -54,8 +62,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// Dashboard unificado
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 require __DIR__.'/auth.php';

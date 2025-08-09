@@ -130,4 +130,17 @@ class RaffleController extends Controller
 
         return redirect()->route('admin.raffles.index')->with('success', 'Rifa eliminada correctamente');
     }
+
+    public function qr(Raffle $raffle)
+    {
+        // Generar data de QR (URL pública de la rifa)
+        $url = route('public.raffle.show', $raffle->id);
+        return view('admin.raffles.qr', compact('raffle', 'url'));
+    }
+
+    public function poster(Raffle $raffle)
+    {
+        $url = route('public.raffle.show', $raffle->id);
+        return view('admin.raffles.poster', compact('raffle', 'url'));
+    }
 }

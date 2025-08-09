@@ -123,8 +123,7 @@
                                     data-id="{{ $number->id }}"
                                     data-status="{{ $number->status }}"
                                     {{ $number->status != 'disponible' ? 'disabled' : '' }}
-                                    {{ $number->status == 'disponible' && auth()->check() && auth()->user()->is_admin ? '' : ($number->status == 'disponible' && !auth()->check() ? '' : 'disabled') }}
-                                    title="{{ $number->status == 'disponible' ? (auth()->check() && auth()->user()->is_admin ? 'Click para seleccionar' : (!auth()->check() ? 'Click para reservar' : 'Solo administradores pueden asignar')) : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
+                                    title="{{ $number->status == 'disponible' ? (auth()->check() && auth()->user()->is_admin ? 'Click para asignar' : 'Click para reservar') : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
                                     {{ $number->number }}
                                 </button>
                                 @if($number->status != 'disponible' && $number->participant && auth()->check() && auth()->user()->is_admin)
@@ -486,25 +485,6 @@
             console.log('Agregando event listener a botón:', btn.getAttribute('data-id'));
             btn.addEventListener('click', function () {
                 console.log('Botón clickeado:', this.getAttribute('data-id'));
-
-                // Verificar si el usuario es administrador
-                @if(!auth()->check())
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Acceso denegado',
-                        text: 'Debes iniciar sesión como administrador para asignar números',
-                        confirmButtonColor: '#3085d6'
-                    });
-                    return;
-                @elseif(!auth()->user()->is_admin)
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Permisos insuficientes',
-                        text: 'Solo los administradores pueden asignar números',
-                        confirmButtonColor: '#3085d6'
-                    });
-                    return;
-                @endif
 
                 // Verificar si la rifa está finalizada
                 @if($raffle->status === 'finalizada')

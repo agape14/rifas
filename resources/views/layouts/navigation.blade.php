@@ -23,14 +23,14 @@
 
                     <!-- Enlaces de administración (solo para admins) -->
                     @if(Auth::user() && Auth::user()->is_admin)
-                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                        <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                             {{ __('Panel de Control') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('admin.raffles.index')" :active="request()->routeIs('admin.*')">
-                            {{ __('Administración') }}
+                        <x-nav-link :href="route('admin.raffles.index')" :active="request()->routeIs('admin.raffles.*')">
+                            {{ __('Rifas (Admin)') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
-                            {{ __('Usuarios') }}
+                        <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+                            {{ __('Reportes') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -106,14 +106,14 @@
             </x-responsive-nav-link>
 
             @if(Auth::user() && Auth::user()->is_admin)
-                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
+                <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Panel de Control') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.raffles.index')" :active="request()->routeIs('admin.*')">
-                    {{ __('Administración') }}
+                <x-responsive-nav-link :href="route('admin.raffles.index')" :active="request()->routeIs('admin.raffles.*')">
+                    {{ __('Rifas (Admin)') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
-                    {{ __('Usuarios') }}
+                <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
+                    {{ __('Reportes') }}
                 </x-responsive-nav-link>
             @endif
         </div>

@@ -36,6 +36,8 @@
             </main>
         </div>
 
+        @stack('scripts')
+
         <script>
         // Theme toggle functionality
         document.addEventListener('DOMContentLoaded', function() {

@@ -12,10 +12,21 @@ class NumberController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $numbers = Number::with(['raffle', 'participant'])->paginate(20);
-        return view('admin.numbers.index', compact('numbers'));
+        $raffleId = $request->query('raffle_id');
+
+        $query = Number::with(['raffle', 'participant']);
+        $currentRaffle = null;
+
+        if ($raffleId) {
+            $query->where('raffle_id', $raffleId);
+            $currentRaffle = Raffle::find($raffleId);
+        }
+
+        $numbers = $query->paginate(20);
+
+        return view('admin.numbers.index', compact('numbers', 'currentRaffle'));
     }
 
     /**
@@ -109,5 +120,25 @@ class NumberController extends Controller
         $number->delete();
 
         return redirect()->route('numbers.index')->with('success', 'Número eliminado correctamente');
+    }
+
+    public function markPaid(Request $request, string $id)
+    {
+        $number = Number::findOrFail($id);
+        if ($number->status !== 'reservado') {
+            return back()->withErrors(['status' => 'Solo se puede marcar como pagado un número reservado']);
+        }
+        $number->status = 'pagado';
+        $number->save();
+        return back()->with('success', 'Número marcado como pagado');
+    }
+
+    public function release(string $id)
+    {
+        $number = Number::findOrFail($id);
+        $number->participant_id = null;
+        $number->status = 'disponible';
+        $number->save();
+        return back()->with('success', 'Número liberado correctamente');
     }
 }

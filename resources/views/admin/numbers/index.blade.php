@@ -10,7 +10,15 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold">Lista de Números</h3>
+                        <div class="flex items-center gap-3">
+                            <a href="{{ route('admin.raffles.index') }}"
+                               class="inline-flex items-center px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                                ← Volver a Rifas
+                            </a>
+                            @if(isset($currentRaffle) && $currentRaffle)
+                                <span class="text-sm text-gray-600 dark:text-gray-400">Mostrando números de: <strong>{{ $currentRaffle->name }}</strong></span>
+                            @endif
+                        </div>
                         <a href="{{ route('admin.numbers.create') }}"
                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                             Nuevo Número
@@ -60,6 +68,23 @@
                                            class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
                                             Editar
                                         </a>
+                                        @if($number->status === 'reservado')
+                                            <form action="{{ route('admin.numbers.markPaid', $number->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300">
+                                                    Marcar pagado
+                                                </button>
+                                            </form>
+                                        @endif
+                                        @if($number->status !== 'disponible')
+                                            <form action="{{ route('admin.numbers.release', $number->id) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300"
+                                                        onclick="return confirm('¿Seguro que deseas liberar este número?')">
+                                                    Liberar
+                                                </button>
+                                            </form>
+                                        @endif
                                         <form action="{{ route('admin.numbers.destroy', $number->id) }}" method="POST" class="inline">
                                             @csrf @method('DELETE')
                                             <button type="submit"
@@ -77,7 +102,7 @@
 
                     @if($numbers->hasPages())
                         <div class="mt-6">
-                            {{ $numbers->links() }}
+                            {{ $numbers->appends(request()->query())->links() }}
                         </div>
                     @endif
                 </div>

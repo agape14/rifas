@@ -29,16 +29,18 @@ class PublicController extends Controller
     {
         $raffle = Raffle::with('numbers.participant', 'prizes')->findOrFail($id);
 
-        // Pre-process participants data to avoid complex PHP in the view
-        $participants = $raffle->numbers->where('status', 'pagado')->map(function($number) {
-            return [
-                'id' => $number->id,
-                'number' => $number->number,
-                'participant_name' => $number->participant ? $number->participant->name : 'Sin nombre',
-                'participant_phone' => $number->participant ? $number->participant->phone : '',
-                'participant_email' => $number->participant ? $number->participant->email : ''
-            ];
-        })->values()->toArray();
+        $participants = $raffle->numbers
+            ->where('status', 'pagado')
+            ->map(function ($number) {
+                return [
+                    'id' => $number->id,
+                    'number' => $number->number,
+                    'participant_name' => $number->participant ? $number->participant->name : 'Sin nombre',
+                    'participant_phone' => $number->participant ? $number->participant->phone : '',
+                    'participant_email' => $number->participant ? $number->participant->email : '',
+                ];
+            })
+            ->values();
 
         return view('public.draw', compact('raffle', 'participants'));
     }
@@ -76,94 +78,57 @@ class PublicController extends Controller
         }
     }
 
-    // Reservar número (para usuarios no registrados)
+    // Reservar número (público/no autenticado)
     public function reserveNumber(Request $request, $id)
     {
-        try {
-            $request->validate([
-                'number_id' => 'required|exists:numbers,id',
-                'name' => 'required|string|max:255',
-                'phone' => 'nullable|string|max:20',
-                'email' => 'nullable|email|max:255'
-            ]);
+        $request->validate([
+            'number_id' => 'required|exists:numbers,id',
+            'name' => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255'
+        ]);
 
-            $raffle = Raffle::findOrFail($id);
+        $raffle = Raffle::findOrFail($id);
+        $number = Number::findOrFail($request->number_id);
 
-            // Verificar que la rifa no esté finalizada
-            if ($raffle->status === 'finalizada') {
-                return response()->json(['error' => 'Esta rifa ya ha sido finalizada y no se pueden realizar más reservas'], 400);
-            }
-
-            $number = Number::findOrFail($request->number_id);
-
-            // Verificar que el número pertenece a la rifa
-            if ($number->raffle_id != $raffle->id) {
-                return response()->json(['error' => 'El número no pertenece a esta rifa'], 400);
-            }
-
-            // Verificar que el número esté disponible
-            if ($number->status !== 'disponible') {
-                return response()->json(['error' => 'El número no está disponible'], 400);
-            }
-
-            // Buscar participante existente o crear uno nuevo
-            $participant = null;
-            $participantExists = false;
-
-            if ($request->email || $request->phone) {
-                $query = Participant::where(function($q) use ($request) {
-                    if ($request->email) {
-                        $q->where('email', $request->email);
-                    }
-                    if ($request->phone) {
-                        $q->where('phone', $request->phone);
-                    }
-                });
-
-                $participant = $query->first();
-                if ($participant) {
-                    $participantExists = true;
-                    // Actualizar información si es necesario
-                    $participant->update([
-                        'name' => $request->name,
-                        'phone' => $request->phone ?: $participant->phone,
-                        'email' => $request->email ?: $participant->email
-                    ]);
-                }
-            }
-
-            if (!$participant) {
-                // Crear nuevo participante
-                $participant = Participant::create([
-                    'name' => $request->name,
-                    'phone' => $request->phone,
-                    'email' => $request->email
-                ]);
-            }
-
-            // Reservar número al participante
-            $number->participant_id = $participant->id;
-            $number->status = 'reservado';
-            $number->save();
-
-            // Disparar evento
-            event(new NumberAssigned($number, $participant));
-
-            $message = $participantExists
-                ? "Número reservado correctamente al participante existente"
-                : "Participante registrado y número reservado correctamente";
-
-            return response()->json([
-                'success' => $message,
-                'participant_name' => $participant->name,
-                'participant_exists' => $participantExists
-            ]);
-        } catch (\Exception $e) {
-            \Log::error('Error al reservar número: ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Error al procesar la solicitud: ' . $e->getMessage()
-            ], 500);
+        if ($number->raffle_id != $raffle->id) {
+            return response()->json(['error' => 'El número no pertenece a esta rifa'], 400);
         }
+
+        if ($number->status !== 'disponible') {
+            return response()->json(['error' => 'El número no está disponible'], 400);
+        }
+
+        // Buscar/crear participante por email/phone
+        $participant = null;
+        if ($request->email || $request->phone) {
+            $participant = Participant::where(function($q) use ($request) {
+                if ($request->email) $q->where('email', $request->email);
+                if ($request->phone) $q->orWhere('phone', $request->phone);
+            })->first();
+        }
+        if (!$participant) {
+            $participant = Participant::create([
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'email' => $request->email
+            ]);
+        } else {
+            $participant->update([
+                'name' => $request->name,
+                'phone' => $request->phone ?: $participant->phone,
+                'email' => $request->email ?: $participant->email,
+            ]);
+        }
+
+        $number->participant_id = $participant->id;
+        $number->status = 'reservado';
+        $number->save();
+
+        return response()->json([
+            'success' => 'Número reservado correctamente',
+            'participant_name' => $participant->name,
+        ]);
     }
 
     // Verificar participante existente
