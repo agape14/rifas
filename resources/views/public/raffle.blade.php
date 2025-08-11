@@ -19,9 +19,9 @@
 
                 @if($raffle->description)
                     <div class="mt-4 max-w-2xl mx-auto">
-                        <p class="text-gray-700 dark:text-gray-300 text-sm sm:text-base leading-relaxed">
-                            {{ $raffle->description }}
-                        </p>
+                        <div class="prose prose-sm sm:prose-base max-w-none text-gray-700 dark:text-gray-300">
+                            {!! $raffle->description !!}
+                        </div>
                     </div>
                 @endif
 
