@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,11 +12,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('participants', function (Blueprint $table) {
-            // Agregar índices únicos para evitar duplicados
-            $table->unique('email');
-            $table->unique('phone');
-        });
+        // Agregar índices únicos solo si no existen
+        if (! $this->indexExists('participants', 'participants_email_unique')) {
+            Schema::table('participants', function (Blueprint $table) {
+                $table->unique('email');
+            });
+        }
+
+        if (! $this->indexExists('participants', 'participants_phone_unique')) {
+            Schema::table('participants', function (Blueprint $table) {
+                $table->unique('phone');
+            });
+        }
     }
 
     /**
@@ -23,9 +31,28 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('participants', function (Blueprint $table) {
-            $table->dropUnique(['email']);
-            $table->dropUnique(['phone']);
-        });
+        // Eliminar índices únicos solo si existen
+        if ($this->indexExists('participants', 'participants_email_unique')) {
+            Schema::table('participants', function (Blueprint $table) {
+                $table->dropUnique('participants_email_unique');
+            });
+        }
+
+        if ($this->indexExists('participants', 'participants_phone_unique')) {
+            Schema::table('participants', function (Blueprint $table) {
+                $table->dropUnique('participants_phone_unique');
+            });
+        }
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        $database = DB::getDatabaseName();
+
+        return DB::table('information_schema.statistics')
+            ->where('table_schema', $database)
+            ->where('table_name', $table)
+            ->where('index_name', $indexName)
+            ->exists();
     }
 };
