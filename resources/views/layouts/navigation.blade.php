@@ -29,9 +29,30 @@
                         <x-nav-link :href="route('admin.raffles.index')" :active="request()->routeIs('admin.raffles.*')">
                             {{ __('Rifas (Admin)') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                            {{ __('Usuarios') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                             {{ __('Reportes') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.reports.proposal')" :active="request()->routeIs('admin.reports.proposal')">
+                            {{ __('Propuesta Comercial') }}
+                        </x-nav-link>
+                    @elseif(Auth::user() && !Auth::user()->is_admin)
+                        @if(Auth::user()->managedRaffle)
+                            <x-nav-link :href="route('admin.numbers.index', ['raffle_id' => Auth::user()->managedRaffle->id])" :active="request()->fullUrlIs(route('admin.numbers.index', ['raffle_id' => Auth::user()->managedRaffle->id]))">
+                                {{ __('Mi rifa - Números') }}
+                            </x-nav-link>
+                            <x-nav-link :href="route('admin.reports.raffle', Auth::user()->managedRaffle)" :active="request()->routeIs('admin.reports.raffle')">
+                                {{ __('Mi rifa - Reporte') }}
+                            </x-nav-link>
+                            <x-nav-link :href="route('admin.raffles.qr', Auth::user()->managedRaffle)" :active="request()->routeIs('admin.raffles.qr')">
+                                {{ __('Mi rifa - QR') }}
+                            </x-nav-link>
+                            <x-nav-link :href="route('admin.raffles.poster', Auth::user()->managedRaffle)" :active="request()->routeIs('admin.raffles.poster')">
+                                {{ __('Mi rifa - Poster') }}
+                            </x-nav-link>
+                        @endif
                     @endif
                 </div>
             </div>
@@ -112,8 +133,14 @@
                 <x-responsive-nav-link :href="route('admin.raffles.index')" :active="request()->routeIs('admin.raffles.*')">
                     {{ __('Rifas (Admin)') }}
                 </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.users.index')" :active="request()->routeIs('admin.users.*')">
+                    {{ __('Usuarios') }}
+                </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                     {{ __('Reportes') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('admin.reports.proposal')" :active="request()->routeIs('admin.reports.proposal')">
+                    {{ __('Propuesta Comercial') }}
                 </x-responsive-nav-link>
             @endif
         </div>

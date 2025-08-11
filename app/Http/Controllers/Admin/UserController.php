@@ -3,90 +3,68 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
+use App\Models\User;
+use App\Models\Raffle;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderBy('created_at', 'desc')->paginate(10);
-        return view('admin.users.index', compact('users'));
-    }
+        $q = $request->query('q');
+        $raffleId = $request->query('raffle_id');
 
-    public function create()
-    {
-        return view('admin.users.create');
-    }
+        $query = User::with('managedRaffle')->orderBy('name');
+        if ($q) {
+            $query->where(function($qq) use ($q) {
+                $qq->where('name', 'like', "%$q%")
+                   ->orWhere('email', 'like', "%$q%");
+            });
+        }
+        if ($raffleId) {
+            $query->where('managed_raffle_id', $raffleId);
+        }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'is_admin' => ['boolean'],
-        ]);
-
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'is_admin' => $request->has('is_admin'),
-        ]);
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'Usuario creado exitosamente.');
-    }
-
-    public function show(User $user)
-    {
-        return view('admin.users.show', compact('user'));
+        $users = $query->paginate(20)->appends($request->query());
+        $raffles = Raffle::orderBy('name')->get();
+        return view('admin.users.index', compact('users', 'raffles', 'q', 'raffleId'));
     }
 
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        $raffles = Raffle::orderBy('name')->get();
+        return view('admin.users.edit', compact('user', 'raffles'));
     }
 
     public function update(Request $request, User $user)
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'is_admin' => ['boolean'],
-        ]);
-
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'is_admin' => $request->has('is_admin'),
-        ]);
-
-        if ($request->filled('password')) {
-            $user->update([
-                'password' => Hash::make($request->password),
-            ]);
+        // Limpieza rápida de rifa asignada
+        if ($request->has('clear_assignment')) {
+            $user->managed_raffle_id = null;
+            $user->save();
+            return redirect()->route('admin.users.index')->with('success', 'Rifa asignada removida del usuario');
         }
 
-        return redirect()->route('admin.users.index')
-            ->with('success', 'Usuario actualizado exitosamente.');
-    }
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
+            'managed_raffle_id' => 'nullable|exists:raffles,id',
+            'is_admin' => 'nullable|boolean',
+            'password' => 'nullable|string|min:8|confirmed',
+        ]);
 
-    public function destroy(User $user)
-    {
-        // Prevenir que el usuario se elimine a sí mismo
-        if ($user->id === auth()->id()) {
-            return redirect()->route('admin.users.index')
-                ->with('error', 'No puedes eliminar tu propia cuenta.');
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->managed_raffle_id = $validated['managed_raffle_id'] ?? null;
+        if ($request->has('is_admin')) {
+            $user->is_admin = (bool)$validated['is_admin'];
         }
+        if (!empty($validated['password'])) {
+            // Se auto-hasheará por el cast del modelo
+            $user->password = $validated['password'];
+        }
+        $user->save();
 
-        $user->delete();
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'Usuario eliminado exitosamente.');
+        return redirect()->route('admin.users.index')->with('success', 'Usuario actualizado');
     }
 }

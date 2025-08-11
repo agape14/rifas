@@ -15,7 +15,7 @@
                         @endif
                         <div class="p-6">
                             <h5 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{{ $raffle->name }}</h5>
-                            <p class="text-gray-600 dark:text-gray-400 mb-3">{{ Str::limit($raffle->description, 80) }}</p>
+                            <p class="text-gray-600 dark:text-gray-400 mb-3">{{ Str::limit(strip_tags($raffle->description), 80) }}</p>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
                                 Sorteo: {{ \Carbon\Carbon::parse($raffle->draw_date)->format('d/m/Y') }}
                             </p>

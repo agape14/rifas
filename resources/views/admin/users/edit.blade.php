@@ -1,65 +1,91 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Editar Usuario') }}
-        </h2>
+        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">Editar Usuario</h2>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-8">
+        <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <form method="POST" action="{{ route('admin.users.update', $user) }}" class="space-y-4 sm:space-y-6">
+                    <form action="{{ route('admin.users.update', $user) }}" method="POST" class="space-y-4">
                         @csrf
                         @method('PUT')
 
                         <div>
-                            <x-input-label for="name" :value="__('Nombre')" class="text-sm sm:text-base" />
-                            <x-text-input id="name" class="block mt-1 w-full px-3 py-2 sm:py-3 text-sm sm:text-base" type="text" name="name" :value="old('name', $user->name)" required autofocus autocomplete="name" />
-                            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                            <label class="block text-sm mb-1">Nombre</label>
+                            <input type="text" name="name" value="{{ old('name', $user->name) }}" class="w-full px-3 py-2 rounded border dark:bg-gray-900 dark:border-gray-700" />
+                            @error('name')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
                         </div>
 
                         <div>
-                            <x-input-label for="email" :value="__('Email')" class="text-sm sm:text-base" />
-                            <x-text-input id="email" class="block mt-1 w-full px-3 py-2 sm:py-3 text-sm sm:text-base" type="email" name="email" :value="old('email', $user->email)" required autocomplete="username" />
-                            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                            <label class="block text-sm mb-1">Email</label>
+                            <input type="email" name="email" value="{{ old('email', $user->email) }}" class="w-full px-3 py-2 rounded border dark:bg-gray-900 dark:border-gray-700" />
+                            @error('email')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
                         </div>
 
                         <div>
-                            <x-input-label for="password" :value="__('Nueva Contraseña (opcional)')" class="text-sm sm:text-base" />
-                            <x-text-input id="password" class="block mt-1 w-full px-3 py-2 sm:py-3 text-sm sm:text-base"
-                                            type="password"
-                                            name="password"
-                                            autocomplete="new-password" />
-                            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                            <label class="block text-sm mb-1">Nueva contraseña (opcional)</label>
+                            <div class="relative">
+                                <input type="password" name="password" id="password" class="w-full px-3 py-2 pr-10 rounded border dark:bg-gray-900 dark:border-gray-700" placeholder="********" />
+                                <button type="button" class="absolute inset-y-0 right-0 px-3 text-sm text-gray-500" onclick="togglePw('password', this)">Ver</button>
+                            </div>
+                            @error('password')<div class="text-red-500 text-xs mt-1">{{ $message }}</div>@enderror
                         </div>
 
                         <div>
-                            <x-input-label for="password_confirmation" :value="__('Confirmar Nueva Contraseña')" class="text-sm sm:text-base" />
-                            <x-text-input id="password_confirmation" class="block mt-1 w-full px-3 py-2 sm:py-3 text-sm sm:text-base"
-                                            type="password"
-                                            name="password_confirmation" autocomplete="new-password" />
-                            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+                            <label class="block text-sm mb-1">Confirmar contraseña</label>
+                            <div class="relative">
+                                <input type="password" name="password_confirmation" id="password_confirmation" class="w-full px-3 py-2 pr-10 rounded border dark:bg-gray-900 dark:border-gray-700" placeholder="********" />
+                                <button type="button" class="absolute inset-y-0 right-0 px-3 text-sm text-gray-500" onclick="togglePw('password_confirmation', this)">Ver</button>
+                            </div>
                         </div>
 
-                        <div class="flex items-center">
-                            <input id="is_admin" type="checkbox" name="is_admin" value="1" {{ $user->is_admin ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                            <label for="is_admin" class="ml-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                                {{ __('Es Administrador') }}
-                            </label>
+                        <div>
+                            <label class="block text-sm mb-1">Rol</label>
+                            <select name="is_admin" class="w-full px-3 py-2 rounded border dark:bg-gray-900 dark:border-gray-700">
+                                <option value="0" {{ old('is_admin', $user->is_admin ? 1 : 0) == 0 ? 'selected' : '' }}>Gestor</option>
+                                <option value="1" {{ old('is_admin', $user->is_admin ? 1 : 0) == 1 ? 'selected' : '' }}>Administrador</option>
+                            </select>
                         </div>
 
-                        <div class="flex flex-col sm:flex-row items-center justify-end mt-4 space-y-2 sm:space-y-0 sm:space-x-3">
-                            <a href="{{ route('admin.users.index') }}" class="w-full sm:w-auto bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 sm:py-3 px-4 rounded text-sm sm:text-base text-center">
-                                Cancelar
-                            </a>
-                            <x-primary-button class="w-full sm:w-auto px-4 py-2 sm:py-3 text-sm sm:text-base">
-                                {{ __('Actualizar Usuario') }}
-                            </x-primary-button>
+                        <div>
+                            <label class="block text-sm mb-1">Rifa asignada (solo gestores)</label>
+                            <div class="flex gap-2">
+                                <select name="managed_raffle_id" class="w-full px-3 py-2 rounded border dark:bg-gray-900 dark:border-gray-700">
+                                    <option value="">— Ninguna —</option>
+                                    @foreach($raffles as $r)
+                                        <option value="{{ $r->id }}" {{ (int)old('managed_raffle_id', $user->managed_raffle_id) === (int)$r->id ? 'selected' : '' }}>{{ $r->name }}</option>
+                                    @endforeach
+                                </select>
+                                @if($user->managed_raffle_id)
+                                    <button type="submit" name="clear_assignment" value="1" class="px-3 py-2 bg-yellow-500 text-white rounded" onclick="return confirm('Quitar rifa asignada?')">Quitar</button>
+                                @endif
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Guardar</button>
+                            <a href="{{ route('admin.users.index') }}" class="px-4 py-2 bg-gray-300 text-gray-800 rounded ml-2">Cancelar</a>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        function togglePw(id, btn){
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.type === 'password') {
+                el.type = 'text';
+                btn.textContent = 'Ocultar';
+            } else {
+                el.type = 'password';
+                btn.textContent = 'Ver';
+            }
+        }
+    </script>
+    @endpush
 </x-app-layout>

@@ -40,10 +40,16 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/reports/raffles/{raffle}', [ReportsController::class, 'raffle'])->name('reports.raffle');
     Route::get('/reports/export/csv', [ReportsController::class, 'exportCsv'])->name('reports.export.csv');
 
+    // Propuesta comercial (vista y PDF)
+    Route::get('/proposals/commercial', [ReportsController::class, 'proposal'])->name('reports.proposal');
+    Route::get('/proposals/commercial/edit', [ReportsController::class, 'proposalEdit'])->name('reports.proposal.edit');
+    Route::post('/proposals/commercial', [ReportsController::class, 'proposalUpdate'])->name('reports.proposal.update');
+
     Route::resource('raffles', RaffleController::class);
     Route::resource('prizes', PrizeController::class);
     Route::resource('numbers', NumberController::class);
     Route::resource('participants', ParticipantController::class);
+    Route::resource('users', \App\Http\Controllers\Admin\UserController::class)->except(['create','store','show','destroy']);
 
     // Ruta para liberar números de un participante
     Route::post('participants/{participant}/release-number', [ParticipantController::class, 'releaseNumber'])->name('participants.releaseNumber');
