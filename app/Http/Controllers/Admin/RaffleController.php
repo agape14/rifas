@@ -17,10 +17,23 @@ class RaffleController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $raffles = Raffle::with(['numbers', 'prizes'])->paginate(10);
-        return view('admin.raffles.index', compact('raffles'));
+        $q = trim((string) $request->query('q', ''));
+
+        $rafflesQuery = Raffle::with(['numbers', 'prizes'])->orderByDesc('created_at');
+
+        if ($q !== '') {
+            $rafflesQuery->where(function($w) use ($q) {
+                $w->where('name', 'like', "%$q%")
+                  ->orWhere('status', 'like', "%$q%")
+                  ->orWhere('draw_date', 'like', "%$q%")
+                  ->orWhere('total_numbers', 'like', "%$q%");
+            });
+        }
+
+        $raffles = $rafflesQuery->paginate(10)->appends($request->query());
+        return view('admin.raffles.index', compact('raffles', 'q'));
     }
 
     /**

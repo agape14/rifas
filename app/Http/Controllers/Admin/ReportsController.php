@@ -21,38 +21,75 @@ class ReportsController extends Controller
         return view('admin.reports.index', compact('raffles'));
     }
 
-    public function raffle(Raffle $raffle)
+    public function raffle(Request $request, Raffle $raffle)
     {
+        // Resumen general (no filtrado)
         $raffle->load(['numbers.participant', 'prizes']);
-        $numbers = $raffle->numbers()->with('participant')->orderBy('number')->get();
-
+        $allNumbers = $raffle->numbers;
         $summary = [
-            'total' => $numbers->count(),
-            'paid' => $numbers->where('status', 'pagado')->count(),
-            'reserved' => $numbers->where('status', 'reservado')->count(),
-            'available' => $numbers->where('status', 'disponible')->count(),
+            'total' => $allNumbers->count(),
+            'paid' => $allNumbers->where('status', 'pagado')->count(),
+            'reserved' => $allNumbers->where('status', 'reservado')->count(),
+            'available' => $allNumbers->where('status', 'disponible')->count(),
         ];
 
-        return view('admin.reports.raffle', compact('raffle', 'numbers', 'summary'));
+        // Lista filtrada/paginada
+        $q = trim((string) $request->query('q', ''));
+        $numbersQuery = Number::with('participant')
+            ->where('raffle_id', $raffle->id)
+            ->orderBy('number');
+
+        if ($q !== '') {
+            $numbersQuery->where(function($qq) use ($q) {
+                $qq->where('number', 'like', "%$q%")
+                   ->orWhere('status', 'like', "%$q%")
+                   ->orWhereHas('participant', function($p) use ($q) {
+                       $p->where('name', 'like', "%$q%")
+                         ->orWhere('phone', 'like', "%$q%")
+                         ->orWhere('email', 'like', "%$q%");
+                   });
+            });
+        }
+
+        $numbers = $numbersQuery->paginate(50)->appends($request->query());
+
+        return view('admin.reports.raffle', compact('raffle', 'numbers', 'summary', 'q'));
     }
 
     public function exportCsv(Request $request): StreamedResponse
     {
         $raffleId = $request->query('raffle_id');
         $raffle = Raffle::findOrFail($raffleId);
-        $fileName = 'reporte_rifa_'.$raffle->id.'.csv';
+        $q = trim((string) $request->query('q', ''));
+        $isExcel = $request->boolean('excel');
+
+        $ext = $isExcel ? 'xls' : 'csv';
+        $fileName = 'reporte_rifa_'.$raffle->id.'.'.$ext;
 
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => $isExcel ? 'application/vnd.ms-excel' : 'text/csv',
             'Content-Disposition' => "attachment; filename=\"$fileName\"",
         ];
 
-        $callback = function() use ($raffle) {
+        $callback = function() use ($raffle, $q) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Raffle', $raffle->name]);
             fputcsv($handle, ['Numero', 'Estado', 'Participante', 'Telefono', 'Email']);
 
-            $raffle->numbers()->with('participant')->orderBy('number')->chunk(500, function($chunk) use ($handle) {
+            $numbersQuery = $raffle->numbers()->with('participant')->orderBy('number');
+            if ($q !== '') {
+                $numbersQuery->where(function($qq) use ($q) {
+                    $qq->where('number', 'like', "%$q%")
+                       ->orWhere('status', 'like', "%$q%")
+                       ->orWhereHas('participant', function($p) use ($q) {
+                           $p->where('name', 'like', "%$q%")
+                             ->orWhere('phone', 'like', "%$q%")
+                             ->orWhere('email', 'like', "%$q%");
+                       });
+                });
+            }
+
+            $numbersQuery->chunk(500, function($chunk) use ($handle) {
                 foreach ($chunk as $num) {
                     fputcsv($handle, [
                         $num->number,

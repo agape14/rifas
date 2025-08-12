@@ -14,10 +14,29 @@ class ParticipantController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $participants = Participant::with(['numbers.raffle'])->paginate(15);
-        return view('admin.participants.index', compact('participants'));
+        $q = trim((string) $request->query('q', ''));
+
+        $participantsQuery = Participant::with(['numbers.raffle'])->orderByDesc('created_at');
+
+        if ($q !== '') {
+            $participantsQuery->where(function($w) use ($q) {
+                $w->where('name', 'like', "%$q%")
+                  ->orWhere('email', 'like', "%$q%")
+                  ->orWhere('phone', 'like', "%$q%")
+                  ->orWhereHas('numbers', function($n) use ($q) {
+                      $n->where('number', 'like', "%$q%")
+                        ->orWhere('status', 'like', "%$q%")
+                        ->orWhereHas('raffle', function($r) use ($q) {
+                            $r->where('name', 'like', "%$q%");
+                        });
+                  });
+            });
+        }
+
+        $participants = $participantsQuery->paginate(15)->appends($request->query());
+        return view('admin.participants.index', compact('participants', 'q'));
     }
 
     /**

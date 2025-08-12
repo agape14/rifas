@@ -28,9 +28,25 @@
 
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold">Números</h3>
-                        <a href="{{ route('admin.reports.export.csv', ['raffle_id' => $raffle->id]) }}" class="px-3 py-2 bg-green-600 text-white rounded">Exportar CSV</a>
+                    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold">Números</h3>
+                            @if(!empty($q))
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Filtro: "{{ $q }}"</p>
+                            @endif
+                        </div>
+                        <form method="GET" action="{{ route('admin.reports.raffle', $raffle) }}" class="flex items-center gap-2">
+                            <input type="hidden" name="page" value="1">
+                            <input type="text" name="q" value="{{ request('q') }}" placeholder="Buscar número, estado, nombre, teléfono, email" class="w-72 px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" />
+                            <button type="submit" class="px-3 py-2 bg-indigo-600 text-white rounded">Buscar</button>
+                            @if(request('q'))
+                                <a href="{{ route('admin.reports.raffle', $raffle) }}" class="px-3 py-2 bg-gray-300 dark:bg-gray-700 dark:text-gray-100 text-gray-800 rounded">Limpiar</a>
+                            @endif
+                        </form>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('admin.reports.export.csv', ['raffle_id' => $raffle->id, 'q' => request('q')]) }}" class="px-3 py-2 bg-green-600 text-white rounded">Exportar CSV</a>
+                            <a href="{{ route('admin.reports.export.csv', ['raffle_id' => $raffle->id, 'q' => request('q'), 'excel' => 1]) }}" class="px-3 py-2 bg-emerald-600 text-white rounded">Exportar Excel</a>
+                        </div>
                     </div>
 
                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -55,6 +71,10 @@
                             @endforeach
                         </tbody>
                     </table>
+
+                    <div class="mt-4">
+                        {{ $numbers->links() }}
+                    </div>
                 </div>
             </div>
         </div>

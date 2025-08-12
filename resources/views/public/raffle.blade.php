@@ -75,6 +75,18 @@
             <div class="mb-8">
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 text-center">Números disponibles</h3>
 
+                <!-- Barra de selección múltiple -->
+                <div id="selectionBar" class="hidden mb-4 bg-blue-50 dark:bg-gray-700 border border-blue-200 dark:border-gray-600 rounded-lg p-3 flex items-center justify-between">
+                    <div class="text-sm text-blue-800 dark:text-blue-200">
+                        <span id="selectedCount">0</span> seleccionados:
+                        <span id="selectedPreview" class="font-semibold"></span>
+                    </div>
+                    <div class="space-x-2">
+                        <button id="clearSelectionBtn" class="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-500">Limpiar</button>
+                        <button id="proceedSelectionBtn" class="px-3 py-1.5 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">Continuar</button>
+                    </div>
+                </div>
+
                 <!-- Botón para ir al sorteo (solo administradores) -->
                 @if(auth()->check() && auth()->user()->is_admin && $raffle->status !== 'finalizada')
                     <div class="text-center mb-6">
@@ -121,9 +133,10 @@
                                 <button
                                     class="number-btn w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-sm sm:text-base md:text-lg font-bold rounded-lg transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 {{ $number->status == 'disponible' ? 'bg-gradient-to-br from-green-400 to-green-600 text-white hover:from-green-500 hover:to-green-700 shadow-lg hover:shadow-xl' : ($number->status == 'pagado' ? 'bg-gradient-to-br from-red-400 to-red-600 text-white cursor-not-allowed' : 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white cursor-not-allowed') }}"
                                     data-id="{{ $number->id }}"
+                                    data-number="{{ $number->number }}"
                                     data-status="{{ $number->status }}"
                                     {{ $number->status != 'disponible' ? 'disabled' : '' }}
-                                    title="{{ $number->status == 'disponible' ? (auth()->check() && auth()->user()->is_admin ? 'Click para asignar' : 'Click para reservar') : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
+                                    title="{{ $number->status == 'disponible' ? (auth()->check() && auth()->user()->is_admin ? 'Click para asignar (admite selección múltiple)' : 'Click para reservar (admite selección múltiple)') : ($number->status == 'pagado' ? 'Número vendido - ' . ($number->participant ? $number->participant->name : '') : 'Número reservado') }}">
                                     {{ $number->number }}
                                 </button>
                                 @if($number->status != 'disponible' && $number->participant && auth()->check() && auth()->user()->is_admin)
@@ -139,7 +152,7 @@
                         @endforeach
                     </div>
 
-                    <!-- Mensaje para usuarios no registrados -->
+                    <!-- Mensajes para usuarios -->
                     @if(!auth()->check())
                         <div class="mt-6 text-center">
                             <div class="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-4">
@@ -184,13 +197,15 @@
         </div>
     </div>
 
-    <!-- Modal para registrar participante -->
+    <!-- Modal para registrar participante (ahora soporta múltiples) -->
     <div id="numberModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 p-4">
         <div class="relative top-4 sm:top-20 mx-auto p-4 sm:p-6 border w-full max-w-sm sm:max-w-md shadow-lg rounded-md bg-white">
             <div class="mt-3">
-                <h3 class="text-lg sm:text-xl font-medium text-gray-900 mb-4" id="modalTitle">Registrar Participante</h3>
+                <h3 class="text-lg sm:text-xl font-medium text-gray-900 mb-2" id="modalTitle">Registrar Participante</h3>
+                <p id="modalSelectedInfo" class="text-sm text-gray-600 mb-3 hidden"></p>
                 <form id="numberForm" class="space-y-4 sm:space-y-6">
                     <input type="hidden" id="number_id" name="number_id">
+                    <input type="hidden" id="number_ids" name="number_ids">
                     <input type="hidden" id="action_type" name="action_type" value="assign">
 
                     <div>
@@ -225,6 +240,45 @@
     <script>
     // Debugging
     console.log('Script cargado');
+
+    // Estado de selección múltiple
+    const selectedIds = new Set();
+
+    function updateSelectionBar() {
+        const bar = document.getElementById('selectionBar');
+        const count = selectedIds.size;
+        const arr = Array.from(selectedIds);
+        if (count > 0) {
+            bar.classList.remove('hidden');
+            document.getElementById('selectedCount').textContent = count;
+            // Mostrar hasta 10 números como vista previa
+            const nums = arr.map(id => {
+                const btn = document.querySelector(`.number-btn[data-id="${id}"]`);
+                return btn ? btn.getAttribute('data-number') : id;
+            });
+            document.getElementById('selectedPreview').textContent = nums.slice(0, 10).join(', ') + (count > 10 ? ` y ${count-10} más` : '');
+        } else {
+            bar.classList.add('hidden');
+        }
+    }
+
+    // Alternar selección de un botón disponible
+    function toggleSelect(btn) {
+        const id = btn.getAttribute('data-id');
+        const status = btn.getAttribute('data-status');
+        if (status !== 'disponible') return;
+
+        if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+            // quitar estilo de seleccionado
+            btn.classList.remove('ring-4', 'ring-indigo-400', 'scale-105');
+        } else {
+            selectedIds.add(id);
+            // estilo de seleccionado
+            btn.classList.add('ring-4', 'ring-indigo-400', 'scale-105');
+        }
+        updateSelectionBar();
+    }
 
     // Función global para liberar números
     function releaseNumberPublic(numberId) {
@@ -361,23 +415,37 @@
         });
     }
 
-        // Función global para abrir modal
     function openModal(selectedNumber) {
-        console.log('openModal llamado con número:', selectedNumber);
-
-        // Determinar si es asignación o reserva
         const isAdmin = {{ auth()->check() && auth()->user()->is_admin ? 'true' : 'false' }};
         const isGuest = {{ !auth()->check() ? 'true' : 'false' }};
 
+        const count = selectedIds.size;
+        const info = document.getElementById('modalSelectedInfo');
+        const idsInput = document.getElementById('number_ids');
+        const singleInput = document.getElementById('number_id');
+
+        if (count > 1) {
+            info.classList.remove('hidden');
+            const nums = Array.from(selectedIds).map(id => {
+                const b = document.querySelector(`.number-btn[data-id="${id}"]`);
+                return b ? b.getAttribute('data-number') : id;
+            }).join(', ');
+            info.textContent = `Números seleccionados: ${nums}`;
+            idsInput.value = Array.from(selectedIds).join(',');
+            singleInput.value = '';
+        } else {
+            info.classList.add('hidden');
+            idsInput.value = '';
+            singleInput.value = Array.from(selectedIds)[0] || document.getElementById('number_id').value;
+        }
+
         if (isGuest) {
-            // Usuario no registrado - Reserva
-            document.getElementById('modalTitle').textContent = `Reservar Número ${selectedNumber}`;
+            document.getElementById('modalTitle').textContent = count > 1 ? `Reservar ${count} números` : `Reservar Número ${selectedNumber}`;
             document.getElementById('action_type').value = 'reserve';
             document.getElementById('submitBtn').textContent = 'Reservar';
             document.getElementById('submitBtn').className = 'px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700';
         } else if (isAdmin) {
-            // Administrador - Asignación
-            document.getElementById('modalTitle').textContent = `Asignar Número ${selectedNumber}`;
+            document.getElementById('modalTitle').textContent = count > 1 ? `Asignar ${count} números (Pagado)` : `Asignar Número ${selectedNumber}`;
             document.getElementById('action_type').value = 'assign';
             document.getElementById('submitBtn').textContent = 'Asignar';
             document.getElementById('submitBtn').className = 'px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700';
@@ -386,15 +454,14 @@
         document.getElementById('numberModal').classList.remove('hidden');
     }
 
-    // Función global para cerrar modal
     function closeModal() {
-        console.log('closeModal llamado');
         document.getElementById('numberModal').classList.add('hidden');
         document.getElementById('numberForm').reset();
-        hideParticipantInfo();
+        const info = document.getElementById('modalSelectedInfo');
+        info.classList.add('hidden');
+        info.textContent = '';
     }
 
-    // Función global para ocultar información de participante
     function hideParticipantInfo() {
         const infoDiv = document.getElementById('participant-info');
         if (infoDiv) {
@@ -402,7 +469,6 @@
         }
     }
 
-    // Función global para mostrar alertas
     function showAlert(message, type) {
         // Usar SweetAlert2 si está disponible, sino fallback al sistema anterior
         if (typeof Swal !== 'undefined') {
@@ -443,7 +509,6 @@
         }, 5000);
     }
 
-    // Función global para actualizar estadísticas
     function updateStatistics() {
         // Obtener estadísticas actualizadas del servidor
         fetch("{{ route('public.raffle.statistics', $raffle->id) }}")
@@ -498,12 +563,39 @@
                 @endif
 
                 if (!this.disabled) {
+                    // Alternar selección múltiple
+                    toggleSelect(this);
                     selectedNumberId = this.getAttribute('data-id');
-                    const selectedNumber = this.textContent.trim();
-                    document.getElementById('number_id').value = selectedNumberId;
-                    openModal(selectedNumber);
                 }
             });
+            // Doble clic abre modal con los seleccionados
+            btn.addEventListener('dblclick', function () {
+                const selectedNumber = this.textContent.trim();
+                // Asegurar que al menos haya uno seleccionado
+                if (selectedIds.size === 0) {
+                    selectedIds.add(this.getAttribute('data-id'));
+                    this.classList.add('ring-4', 'ring-indigo-400', 'scale-105');
+                    updateSelectionBar();
+                }
+                openModal(selectedNumber);
+            });
+        });
+
+        // Botones de barra de selección
+        document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+            // Limpiar estilos
+            Array.from(selectedIds).forEach(id => {
+                const b = document.querySelector(`.number-btn[data-id="${id}"]`);
+                if (b) b.classList.remove('ring-4', 'ring-indigo-400', 'scale-105');
+            });
+            selectedIds.clear();
+            updateSelectionBar();
+        });
+        document.getElementById('proceedSelectionBtn').addEventListener('click', () => {
+            // Abrir modal con selección múltiple
+            const anyBtn = Array.from(selectedIds)[0] ? document.querySelector(`.number-btn[data-id="${Array.from(selectedIds)[0]}"]`) : null;
+            const selectedNumber = anyBtn ? anyBtn.textContent.trim() : '';
+            openModal(selectedNumber);
         });
 
         // Manejo del formulario
@@ -524,6 +616,16 @@
 
             let formData = new FormData(this);
             const actionType = formData.get('action_type');
+
+            // Incorporar selección múltiple
+            if (selectedIds.size > 1) {
+                formData.set('number_ids', Array.from(selectedIds).join(','));
+                formData.delete('number_id');
+            } else if (selectedIds.size === 1) {
+                const onlyId = Array.from(selectedIds)[0];
+                formData.set('number_id', onlyId);
+                formData.delete('number_ids');
+            }
 
             // Determinar la URL según el tipo de acción
             let url = "{{ route('public.raffle.selectNumber', $raffle->id) }}";
@@ -557,35 +659,38 @@
                 if (data.success) {
                     closeModal();
 
-                    let btn = document.querySelector(`.number-btn[data-id="${selectedNumberId}"]`);
-
-                    if (actionType === 'reserve') {
-                        // Reserva - cambiar a amarillo
+                    // Actualizar UI para cada id procesado
+                    const processed = data.processed_ids || [];
+                    processed.forEach(id => {
+                        const btn = document.querySelector(`.number-btn[data-id="${id}"]`);
+                        if (!btn) return;
                         btn.classList.remove('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
-                        btn.classList.add('bg-gradient-to-br', 'from-yellow-400', 'to-yellow-600', 'cursor-not-allowed');
-                        btn.setAttribute('data-status', 'reservado');
+                        if (actionType === 'reserve') {
+                            btn.classList.add('bg-gradient-to-br', 'from-yellow-400', 'to-yellow-600', 'cursor-not-allowed');
+                            btn.setAttribute('data-status', 'reservado');
+                            btn.title = `Número reservado - ${data.participant_name || 'Participante'}`;
+                        } else {
+                            btn.classList.add('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
+                            btn.setAttribute('data-status', 'pagado');
+                            btn.title = `Número vendido - ${data.participant_name || 'Participante'}`;
+                            @if(auth()->check() && auth()->user()->is_admin)
+                            const container = btn.parentElement;
+                            if (!container.querySelector('.release-btn')) {
+                                const releaseBtn = document.createElement('button');
+                                releaseBtn.className = 'release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center';
+                                releaseBtn.setAttribute('data-number-id', id);
+                                releaseBtn.innerHTML = '×';
+                                releaseBtn.title = `Liberar número - ${data.participant_name || 'Participante'}`;
+                                releaseBtn.onclick = function() { releaseNumberPublic(id); };
+                                container.appendChild(releaseBtn);
+                            }
+                            @endif
+                        }
                         btn.disabled = true;
-                        btn.title = `Número reservado - ${data.participant_name || 'Participante'}`;
-                    } else {
-                        // Asignación - cambiar a rojo
-                        btn.classList.remove('bg-gradient-to-br', 'from-green-400', 'to-green-600', 'hover:from-green-500', 'hover:to-green-700', 'shadow-lg', 'hover:shadow-xl');
-                        btn.classList.add('bg-gradient-to-br', 'from-red-400', 'to-red-600', 'cursor-not-allowed');
-                        btn.setAttribute('data-status', 'pagado');
-                        btn.disabled = true;
-                        btn.title = `Número vendido - ${data.participant_name || 'Participante'}`;
+                    });
 
-                        @if(auth()->check() && auth()->user()->is_admin)
-                        let numberContainer = btn.parentElement;
-                        let releaseBtn = document.createElement('button');
-                        releaseBtn.className = 'release-btn absolute -top-1 -right-1 bg-white text-red-500 text-xs w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center';
-                        releaseBtn.setAttribute('data-number-id', selectedNumberId);
-                        releaseBtn.innerHTML = '×';
-                        releaseBtn.title = `Liberar número - ${data.participant_name || 'Participante'}`;
-                        releaseBtn.onclick = function() { releaseNumberPublic(selectedNumberId); };
-                        numberContainer.appendChild(releaseBtn);
-                        @endif
-                    }
-
+                    // Limpiar selección
+                    document.getElementById('clearSelectionBtn').click();
                     updateStatistics();
 
                     // Mostrar mensaje de éxito con SweetAlert2

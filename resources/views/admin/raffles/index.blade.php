@@ -9,8 +9,20 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-lg font-semibold">Lista de Rifas</h3>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+                        <div>
+                            <h3 class="text-lg font-semibold">Lista de Rifas</h3>
+                            @if(!empty(request('q')))
+                                <p class="text-xs text-gray-500 dark:text-gray-400">Filtro: "{{ request('q') }}"</p>
+                            @endif
+                        </div>
+                        <form method="GET" action="{{ route('admin.raffles.index') }}" class="flex items-center gap-2">
+                            <input type="text" name="q" value="{{ request('q') }}" placeholder="Buscar por nombre, estado, fecha, total" class="w-72 px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" />
+                            <button type="submit" class="px-3 py-2 bg-indigo-600 text-white rounded">Buscar</button>
+                            @if(request('q'))
+                                <a href="{{ route('admin.raffles.index') }}" class="px-3 py-2 bg-gray-300 dark:bg-gray-700 dark:text-gray-100 text-gray-800 rounded">Limpiar</a>
+                            @endif
+                        </form>
                         <a href="{{ route('admin.raffles.create') }}"
                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                             Nueva Rifa
@@ -66,14 +78,6 @@
                                            class="text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">
                                             Números
                                         </a>
-                                        <form action="{{ route('admin.raffles.destroy', $raffle->id) }}" method="POST" class="inline">
-                                            @csrf @method('DELETE')
-                                            <button type="submit"
-                                                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                                    onclick="return confirm('¿Estás seguro de que quieres eliminar esta rifa?')">
-                                                Eliminar
-                                            </button>
-                                        </form>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -83,7 +87,7 @@
 
                     @if($raffles->hasPages())
                         <div class="mt-6">
-                            {{ $raffles->links() }}
+                            {{ $raffles->appends(request()->query())->links() }}
                         </div>
                     @endif
                 </div>

@@ -15,8 +15,9 @@ class NumberController extends Controller
     public function index(Request $request)
     {
         $raffleId = $request->query('raffle_id');
+        $searchQuery = trim((string) $request->query('q', ''));
 
-        $query = Number::with(['raffle', 'participant']);
+        $query = Number::with(['raffle', 'participant'])->orderBy('number');
         $currentRaffle = null;
 
         if ($raffleId) {
@@ -24,9 +25,24 @@ class NumberController extends Controller
             $currentRaffle = Raffle::find($raffleId);
         }
 
-        $numbers = $query->paginate(20);
+        if ($searchQuery !== '') {
+            $query->where(function ($q) use ($searchQuery) {
+                $q->where('number', 'like', "%$searchQuery%")
+                  ->orWhere('status', 'like', "%$searchQuery%")
+                  ->orWhereHas('participant', function ($p) use ($searchQuery) {
+                      $p->where('name', 'like', "%$searchQuery%")
+                        ->orWhere('phone', 'like', "%$searchQuery%")
+                        ->orWhere('email', 'like', "%$searchQuery%");
+                  })
+                  ->orWhereHas('raffle', function ($r) use ($searchQuery) {
+                      $r->where('name', 'like', "%$searchQuery%");
+                  });
+            });
+        }
 
-        return view('admin.numbers.index', compact('numbers', 'currentRaffle'));
+        $numbers = $query->paginate(20)->appends($request->query());
+
+        return view('admin.numbers.index', compact('numbers', 'currentRaffle', 'searchQuery'));
     }
 
     /**

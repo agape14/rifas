@@ -9,7 +9,7 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <div class="flex justify-between items-center mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
                         <div class="flex items-center gap-3">
                             <a href="{{ route('admin.raffles.index') }}"
                                class="inline-flex items-center px-3 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
@@ -19,6 +19,16 @@
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Mostrando números de: <strong>{{ $currentRaffle->name }}</strong></span>
                             @endif
                         </div>
+                        <form method="GET" action="{{ route('admin.numbers.index') }}" class="flex items-center gap-2">
+                            @if(request('raffle_id'))
+                                <input type="hidden" name="raffle_id" value="{{ request('raffle_id') }}">
+                            @endif
+                            <input type="text" name="q" value="{{ request('q') }}" placeholder="Buscar número, estado, participante, rifa" class="w-72 px-3 py-2 rounded border dark:bg-gray-700 dark:border-gray-600" />
+                            <button type="submit" class="px-3 py-2 bg-indigo-600 text-white rounded">Buscar</button>
+                            @if(request('q'))
+                                <a href="{{ route('admin.numbers.index', array_filter(['raffle_id' => request('raffle_id')])) }}" class="px-3 py-2 bg-gray-300 dark:bg-gray-700 dark:text-gray-100 text-gray-800 rounded">Limpiar</a>
+                            @endif
+                        </form>
                         <a href="{{ route('admin.numbers.create') }}"
                            class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                             Nuevo Número

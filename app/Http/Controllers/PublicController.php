@@ -78,25 +78,31 @@ class PublicController extends Controller
         }
     }
 
-    // Reservar número (público/no autenticado)
+    // Reservar número(s) (público/no autenticado)
     public function reserveNumber(Request $request, $id)
     {
+        // Aceptar tanto number_id único como number_ids múltiples (CSV o array)
         $request->validate([
-            'number_id' => 'required|exists:numbers,id',
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255'
         ]);
 
         $raffle = Raffle::findOrFail($id);
-        $number = Number::findOrFail($request->number_id);
 
-        if ($number->raffle_id != $raffle->id) {
-            return response()->json(['error' => 'El número no pertenece a esta rifa'], 400);
+        // Normalizar ids
+        $ids = $request->input('number_ids');
+        if (is_string($ids)) {
+            $ids = array_filter(array_map('trim', explode(',', $ids)));
         }
-
-        if ($number->status !== 'disponible') {
-            return response()->json(['error' => 'El número no está disponible'], 400);
+        if (empty($ids)) {
+            $singleId = $request->input('number_id');
+            if ($singleId) {
+                $ids = [$singleId];
+            }
+        }
+        if (empty($ids) || !is_array($ids)) {
+            return response()->json(['error' => 'No se proporcionaron números válidos'], 422);
         }
 
         // Buscar/crear participante por email/phone
@@ -121,14 +127,31 @@ class PublicController extends Controller
             ]);
         }
 
-        $number->participant_id = $participant->id;
-        $number->status = 'reservado';
-        $number->save();
+        $processedIds = [];
+        $failed = [];
+
+        foreach ($ids as $numId) {
+            $number = Number::find($numId);
+            if (!$number) { $failed[] = ["id" => $numId, "error" => 'Número no encontrado']; continue; }
+            if ($number->raffle_id != $raffle->id) { $failed[] = ["id" => $numId, "error" => 'No pertenece a esta rifa']; continue; }
+            if ($number->status !== 'disponible') { $failed[] = ["id" => $numId, "error" => 'No disponible']; continue; }
+
+            $number->participant_id = $participant->id;
+            $number->status = 'reservado';
+            $number->save();
+            $processedIds[] = (int) $numId;
+        }
+
+        $msg = count($processedIds) === 1
+            ? 'Número reservado correctamente'
+            : 'Números reservados: '.count($processedIds);
 
         return response()->json([
-            'success' => 'Número reservado correctamente',
+            'success' => $msg,
             'participant_name' => $participant->name,
-        ]);
+            'processed_ids' => $processedIds,
+            'failed' => $failed,
+        ], empty($processedIds) ? 422 : 200);
     }
 
     // Verificar participante existente
@@ -175,12 +198,15 @@ class PublicController extends Controller
         return response()->json(['exists' => false]);
     }
 
-    // Asignar número a participante
+    // Asignar número(s) a participante como pagado (solo admin)
     public function selectNumber(Request $request, $id)
     {
+        if (!auth()->check() || !auth()->user()->is_admin) {
+            return response()->json(['error' => 'No tienes permisos para realizar esta acción'], 403);
+        }
+
         try {
             $request->validate([
-                'number_id' => 'required|exists:numbers,id',
                 'name' => 'required|string|max:255',
                 'phone' => 'nullable|string|max:20',
                 'email' => 'nullable|email|max:255'
@@ -188,21 +214,23 @@ class PublicController extends Controller
 
             $raffle = Raffle::findOrFail($id);
 
-            // Verificar que la rifa no esté finalizada
             if ($raffle->status === 'finalizada') {
                 return response()->json(['error' => 'Esta rifa ya ha sido finalizada y no se pueden realizar más inscripciones'], 400);
             }
 
-            $number = Number::findOrFail($request->number_id);
-
-            // Verificar que el número pertenece a la rifa
-            if ($number->raffle_id != $raffle->id) {
-                return response()->json(['error' => 'El número no pertenece a esta rifa'], 400);
+            // Normalizar ids
+            $ids = $request->input('number_ids');
+            if (is_string($ids)) {
+                $ids = array_filter(array_map('trim', explode(',', $ids)));
             }
-
-            // Verificar que el número esté disponible
-            if ($number->status !== 'disponible') {
-                return response()->json(['error' => 'El número no está disponible'], 400);
+            if (empty($ids)) {
+                $singleId = $request->input('number_id');
+                if ($singleId) {
+                    $ids = [$singleId];
+                }
+            }
+            if (empty($ids) || !is_array($ids)) {
+                return response()->json(['error' => 'No se proporcionaron números válidos'], 422);
             }
 
             // Buscar participante existente o crear uno nuevo
@@ -215,14 +243,13 @@ class PublicController extends Controller
                         $q->where('email', $request->email);
                     }
                     if ($request->phone) {
-                        $q->where('phone', $request->phone);
+                        $q->orWhere('phone', $request->phone);
                     }
                 });
 
                 $participant = $query->first();
                 if ($participant) {
                     $participantExists = true;
-                    // Actualizar información si es necesario
                     $participant->update([
                         'name' => $request->name,
                         'phone' => $request->phone ?: $participant->phone,
@@ -232,7 +259,6 @@ class PublicController extends Controller
             }
 
             if (!$participant) {
-                // Crear nuevo participante sin validaciones únicas para email y phone
                 $participant = Participant::create([
                     'name' => $request->name,
                     'phone' => $request->phone,
@@ -240,23 +266,33 @@ class PublicController extends Controller
                 ]);
             }
 
-            // Asignar número al participante
-            $number->participant_id = $participant->id;
-            $number->status = 'pagado';
-            $number->save();
+            $processedIds = [];
+            $failed = [];
 
-            // Disparar evento
-            event(new NumberAssigned($number, $participant));
+            foreach ($ids as $numId) {
+                $number = Number::find($numId);
+                if (!$number) { $failed[] = ["id" => $numId, "error" => 'Número no encontrado']; continue; }
+                if ($number->raffle_id != $raffle->id) { $failed[] = ["id" => $numId, "error" => 'No pertenece a esta rifa']; continue; }
+                if ($number->status !== 'disponible') { $failed[] = ["id" => $numId, "error" => 'No disponible']; continue; }
 
-            $message = $participantExists
-                ? "Número asignado correctamente al participante existente"
-                : "Participante registrado y número asignado correctamente";
+                $number->participant_id = $participant->id;
+                $number->status = 'pagado';
+                $number->save();
+                event(new NumberAssigned($number, $participant));
+                $processedIds[] = (int) $numId;
+            }
+
+            $message = count($processedIds) === 1
+                ? ($participantExists ? 'Número asignado al participante existente' : 'Participante registrado y número asignado')
+                : 'Números marcados como pagados: '.count($processedIds);
 
             return response()->json([
                 'success' => $message,
                 'participant_name' => $participant->name,
-                'participant_exists' => $participantExists
-            ]);
+                'participant_exists' => $participantExists,
+                'processed_ids' => $processedIds,
+                'failed' => $failed,
+            ], empty($processedIds) ? 422 : 200);
         } catch (\Exception $e) {
             \Log::error('Error al asignar número: ' . $e->getMessage());
             return response()->json([
