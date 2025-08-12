@@ -109,7 +109,7 @@
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm text-gray-900 dark:text-gray-100">
-                                                ${{ number_format($participant->numbers->sum('price'), 0) }}
+                                                S/. {{ number_format($participant->numbers->sum('price'), 0) }}
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">

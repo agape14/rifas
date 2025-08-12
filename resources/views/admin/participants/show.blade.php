@@ -78,7 +78,7 @@
                                                     {{ ucfirst($number->status) }}
                                                 </div>
                                                 <div class="text-xs text-gray-400 dark:text-gray-500">
-                                                    ${{ number_format($number->price, 0) }}
+                                                    S/. {{ number_format($number->price, 0) }}
                                                 </div>
                                             </div>
                                         @endforeach
@@ -139,7 +139,7 @@
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-600 dark:text-gray-400">Total invertido:</span>
                                         <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            ${{ number_format($participant->numbers->sum('price'), 0) }}
+                                            S/. {{ number_format($participant->numbers->sum('price'), 0) }}
                                         </span>
                                     </div>
                                 </div>

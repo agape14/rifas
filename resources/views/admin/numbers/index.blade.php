@@ -71,7 +71,7 @@
                                         {{ $number->participant ? $number->participant->name : 'Sin asignar' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                                        {{ $number->price ? '$' . number_format($number->price, 2) : 'N/A' }}
+                                        {{ $number->price !== null ? 'S/.' . number_format($number->price, 2) : 'N/A' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                                         <a href="{{ route('admin.numbers.edit', $number->id) }}"

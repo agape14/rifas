@@ -34,10 +34,16 @@
                                 <x-input-error :messages="$errors->get('draw_date')" class="mt-2" />
                             </div>
 
-                            <div>
-                                <x-input-label for="total_numbers" :value="__('Total de Números')" class="text-sm sm:text-base" />
-                                <x-text-input id="total_numbers" name="total_numbers" type="number" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('total_numbers', 100)" required />
-                                <x-input-error :messages="$errors->get('total_numbers')" class="mt-2" />
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <x-input-label for="total_numbers" :value="__('Total de Números')" class="text-sm sm:text-base" />
+                                    <x-text-input id="total_numbers" name="total_numbers" type="number" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('total_numbers', 100)" required />
+                                    <x-input-error :messages="$errors->get('total_numbers')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <x-input-label for="number_price" :value="__('Precio por número (S/.)')" class="text-sm sm:text-base" />
+                                    <x-text-input id="number_price" name="number_price" type="number" step="0.01" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('number_price', 10)" />
+                                </div>
                             </div>
                         </div>
 

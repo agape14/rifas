@@ -57,9 +57,10 @@ class RaffleController extends Controller
             'status' => 'required|string',
             'total_numbers' => 'required|integer',
             'theme_color' => 'required|string',
+            'number_price' => 'nullable|numeric|min:0',
         ]);
 
-        $raffle = Raffle::create($request->except('banner'));
+        $raffle = Raffle::create($request->except('banner', 'number_price'));
 
         if ($request->hasFile('banner')) {
             $file = $request->file('banner');
@@ -70,8 +71,9 @@ class RaffleController extends Controller
             $raffle->save();
         }
 
-        // Generar números 1..total_numbers para la rifa recién creada
-        $this->ensureRaffleNumbers($raffle);
+        $price = $request->input('number_price', 10);
+        // Generar números 1..total_numbers para la rifa recién creada con precio por defecto
+        $this->ensureRaffleNumbers($raffle, $price);
 
         return redirect()->route('admin.raffles.index')->with('success', 'Rifa creada correctamente');
     }
@@ -109,6 +111,7 @@ class RaffleController extends Controller
             'status' => 'required|string',
             'total_numbers' => 'required|integer',
             'theme_color' => 'required|string',
+            'number_price' => 'nullable|numeric|min:0',
         ]);
 
         // --- Validación de cambios en total_numbers antes de actualizar el modelo ---
@@ -135,7 +138,7 @@ class RaffleController extends Controller
         }
 
         // Actualizar datos de la rifa (incluye total_numbers permitido)
-        $raffle->update($request->except('banner'));
+        $raffle->update($request->except('banner', 'number_price'));
 
         if ($request->hasFile('banner')) {
             // Eliminar imagen anterior si existe
@@ -151,11 +154,20 @@ class RaffleController extends Controller
             $raffle->save();
         }
 
+        $price = $request->input('number_price');
+
         // Ejecutar acción de números dependiendo de la validación previa
         if ($action === 'increase_only') {
-            $this->ensureRaffleNumbers($raffle); // añade faltantes hasta total_numbers
+            // añade faltantes hasta total_numbers con el precio indicado (o mantener precio actual si no se envió)
+            $this->ensureRaffleNumbers($raffle, $price ?? 10);
         } elseif ($action === 'regenerate') {
-            $this->regenerateRaffleNumbers($raffle); // recrea exacto 1..total_numbers
+            // recrea exacto 1..total_numbers con el precio indicado
+            $this->regenerateRaffleNumbers($raffle, $price ?? 10);
+        }
+
+        // Si se especificó un precio, actualizar todos los números existentes de la rifa con ese precio
+        if ($price !== null && $price !== '') {
+            $raffle->numbers()->update(['price' => $price]);
         }
 
         return redirect()->route('admin.raffles.index')->with('success', 'Rifa actualizada correctamente');
@@ -195,7 +207,7 @@ class RaffleController extends Controller
      * Asegura que existan números del 1..total_numbers para la rifa.
      * Crea únicamente los que falten. No elimina sobrantes.
      */
-    private function ensureRaffleNumbers(Raffle $raffle): void
+    private function ensureRaffleNumbers(Raffle $raffle, ?float $price = null): void
     {
         $totalNumbers = (int) $raffle->total_numbers;
         if ($totalNumbers <= 0) {
@@ -206,6 +218,7 @@ class RaffleController extends Controller
         $existingNumbers = $raffle->numbers()->pluck('number')->all();
         $existingSet = array_flip($existingNumbers);
 
+        $defaultPrice = $price ?? 10;
         $toInsert = [];
         for ($n = 1; $n <= $totalNumbers; $n++) {
             if (!isset($existingSet[$n])) {
@@ -214,7 +227,7 @@ class RaffleController extends Controller
                     'number' => $n,
                     'participant_id' => null,
                     'status' => 'disponible',
-                    'price' => null,
+                    'price' => $defaultPrice,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -230,7 +243,7 @@ class RaffleController extends Controller
      * Regenera exactamente los números 1..total_numbers, eliminando los existentes.
      * Debe llamarse solo si no hay números reservados/pagados.
      */
-    private function regenerateRaffleNumbers(Raffle $raffle): void
+    private function regenerateRaffleNumbers(Raffle $raffle, ?float $price = null): void
     {
         $totalNumbers = (int) $raffle->total_numbers;
         if ($totalNumbers <= 0) {
@@ -242,6 +255,7 @@ class RaffleController extends Controller
         // Eliminar todos los números actuales
         $raffle->numbers()->delete();
 
+        $defaultPrice = $price ?? 10;
         // Insertar del 1 al total
         $toInsert = [];
         for ($n = 1; $n <= $totalNumbers; $n++) {
@@ -250,7 +264,7 @@ class RaffleController extends Controller
                 'number' => $n,
                 'participant_id' => null,
                 'status' => 'disponible',
-                'price' => null,
+                'price' => $defaultPrice,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
