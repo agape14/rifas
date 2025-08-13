@@ -84,8 +84,16 @@ class PublicController extends Controller
         // Aceptar tanto number_id único como number_ids múltiples (CSV o array)
         $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'phone' => [
+                'required',
+                'string',
+                'max:20',
+                'regex:/^\+51\s9\d{2}\s\d{3}\s\d{3}$/'
+            ],
             'email' => 'nullable|email|max:255'
+        ], [
+            'phone.required' => 'El número de celular es obligatorio.',
+            'phone.regex' => 'El celular debe tener el formato +51 9XX XXX XXX.'
         ]);
 
         $raffle = Raffle::findOrFail($id);
@@ -208,8 +216,16 @@ class PublicController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
-                'phone' => 'nullable|string|max:20',
+                'phone' => [
+                    'required',
+                    'string',
+                    'max:20',
+                    'regex:/^\+51\s9\d{2}\s\d{3}\s\d{3}$/'
+                ],
                 'email' => 'nullable|email|max:255'
+            ], [
+                'phone.required' => 'El número de celular es obligatorio.',
+                'phone.regex' => 'El celular debe tener el formato +51 9XX XXX XXX.'
             ]);
 
             $raffle = Raffle::findOrFail($id);

@@ -214,8 +214,9 @@
                     </div>
 
                     <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                        <input type="tel" name="phone" id="phone" class="mt-1 block w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base">
+                        <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Celular (Perú) *</label>
+                        <input type="tel" name="phone" id="phone" required placeholder="+51 9XX XXX XXX" pattern="^\+51\s9\d{2}\s\d{3}\s\d{3}$" class="mt-1 block w-full px-3 py-2 sm:py-3 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm sm:text-base">
+                        <p class="mt-1 text-xs text-gray-500">Formato: +51 9XX XXX XXX</p>
                     </div>
 
                     <div>
@@ -603,6 +604,12 @@
             e.preventDefault();
             console.log('Formulario enviado');
 
+            // Validación nativa del navegador (incluye pattern del celular)
+            if (!this.checkValidity()) {
+                this.reportValidity();
+                return;
+            }
+
             // Verificar si la rifa está finalizada
             @if($raffle->status === 'finalizada')
             Swal.fire({
@@ -745,6 +752,29 @@
         const emailInput = document.getElementById('email');
         const phoneInput = document.getElementById('phone');
         const nameInput = document.getElementById('name');
+
+        // Enmascarado/formato de celular Perú: +51 9XX XXX XXX
+        function formatPeruPhone(value) {
+            const digits = value.replace(/\D/g, '');
+            let d = digits;
+            if (d.startsWith('51')) d = d.slice(2);
+            if (d.startsWith('0')) d = d.slice(1);
+            if (!d.startsWith('9')) d = d ? '9' + d.replace(/^9+/, '') : '';
+            d = d.slice(0, 9);
+            let out = '+51';
+            if (d.length > 0) out += ' ' + d[0];
+            if (d.length > 1) out += d[1] + d[2] ? d[1] + d[2] : '';
+            if (d.length > 3) out = '+51 ' + d.slice(0,3) + ' ' + d.slice(3,6);
+            if (d.length > 6) out = '+51 ' + d.slice(0,3) + ' ' + d.slice(3,6) + ' ' + d.slice(6,9);
+            return out;
+        }
+
+        phoneInput.addEventListener('input', function() {
+            const pos = this.selectionStart;
+            const formatted = formatPeruPhone(this.value);
+            this.value = formatted;
+            // El caret puede moverse; dejamos comportamiento por defecto
+        });
 
         // Función para verificar participante existente
         function checkExistingParticipant() {
