@@ -13,7 +13,9 @@ class PublicController extends Controller
     // Página de inicio con todas las rifas
     public function index()
     {
-        $raffles = Raffle::orderBy('created_at', 'desc')->get();
+        $raffles = Raffle::withCount([
+            'numbers as available_count' => function($q) { $q->where('status', 'disponible'); },
+        ])->orderBy('created_at', 'desc')->get();
         return view('public.index', compact('raffles'));
     }
 
@@ -82,18 +84,24 @@ class PublicController extends Controller
     public function reserveNumber(Request $request, $id)
     {
         // Aceptar tanto number_id único como number_ids múltiples (CSV o array)
+        // Normalizar teléfono a formato almacenado sin espacios
+        if ($request->phone) {
+            $request->merge(['phone' => \App\Models\Participant::normalizePeruPhone($request->phone)]);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => [
                 'required',
                 'string',
                 'max:20',
-                'regex:/^\+51\s9\d{2}\s\d{3}\s\d{3}$/'
+                // validar formato normalizado +519XXXXXXXX
+                'regex:/^\+519\d{8}$/'
             ],
             'email' => 'nullable|email|max:255'
         ], [
             'phone.required' => 'El número de celular es obligatorio.',
-            'phone.regex' => 'El celular debe tener el formato +51 9XX XXX XXX.'
+            'phone.regex' => 'El celular debe tener el formato +519XXXXXXXX.'
         ]);
 
         $raffle = Raffle::findOrFail($id);
@@ -111,6 +119,11 @@ class PublicController extends Controller
         }
         if (empty($ids) || !is_array($ids)) {
             return response()->json(['error' => 'No se proporcionaron números válidos'], 422);
+        }
+
+        // Normalizar teléfono a formato almacenado sin espacios
+        if ($request->phone) {
+            $request->merge(['phone' => \App\Models\Participant::normalizePeruPhone($request->phone)]);
         }
 
         // Buscar/crear participante por email/phone
@@ -214,18 +227,23 @@ class PublicController extends Controller
         }
 
         try {
+            // Normalizar teléfono a formato almacenado sin espacios
+            if ($request->phone) {
+                $request->merge(['phone' => \App\Models\Participant::normalizePeruPhone($request->phone)]);
+            }
+
             $request->validate([
                 'name' => 'required|string|max:255',
                 'phone' => [
                     'required',
                     'string',
                     'max:20',
-                    'regex:/^\+51\s9\d{2}\s\d{3}\s\d{3}$/'
+                    'regex:/^\+519\d{8}$/'
                 ],
                 'email' => 'nullable|email|max:255'
             ], [
                 'phone.required' => 'El número de celular es obligatorio.',
-                'phone.regex' => 'El celular debe tener el formato +51 9XX XXX XXX.'
+                'phone.regex' => 'El celular debe tener el formato +519XXXXXXXX.'
             ]);
 
             $raffle = Raffle::findOrFail($id);

@@ -54,6 +54,11 @@ class ParticipantController extends Controller
     {
         $request->validate(Participant::getValidationRules());
 
+        // Normalizar teléfono antes de crear
+        if ($request->phone) {
+            $request->merge(['phone' => Participant::normalizePeruPhone($request->phone)]);
+        }
+
         $participant = Participant::create($request->except('photo'));
 
         if ($request->hasFile('photo')) {
@@ -94,6 +99,11 @@ class ParticipantController extends Controller
         $participant = Participant::findOrFail($id);
 
         $request->validate(Participant::getValidationRules($id));
+
+        // Normalizar teléfono antes de actualizar
+        if ($request->phone) {
+            $request->merge(['phone' => Participant::normalizePeruPhone($request->phone)]);
+        }
 
         $participant->update($request->except('photo'));
 

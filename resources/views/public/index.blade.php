@@ -23,10 +23,41 @@
                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 focus:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
                                 Ver detalles
                             </a>
+                            <button type="button"
+                                class="inline-flex items-center px-4 py-2 ml-2 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 focus:bg-green-700 active:bg-green-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition ease-in-out duration-150 share-index-btn"
+                                data-name="{{ $raffle->name }}"
+                                data-url="{{ route('public.raffle.show', $raffle->id) }}"
+                                data-available="{{ $raffle->available_count ?? ($raffle->numbers->where('status','disponible')->count() ?? 0) }}">
+                                Compartir
+                            </button>
                         </div>
                     </div>
                 @endforeach
             </div>
         </div>
     </div>
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.share-index-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const name = this.getAttribute('data-name');
+                const url = this.getAttribute('data-url');
+                const available = this.getAttribute('data-available');
+                const text = `Rifa: ${name}\nNúmeros disponibles: ${available}\nLink: ${url}`;
+
+                if (navigator.share) {
+                    navigator.share({ title: name, text, url }).catch(() => {
+                        const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                        window.open(wa, '_blank');
+                    });
+                } else {
+                    const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    window.open(wa, '_blank');
+                }
+            });
+        });
+    });
+    </script>
+    @endpush
 </x-public-layout>

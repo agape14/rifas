@@ -86,7 +86,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm text-gray-900 dark:text-gray-100">
                                                 @if($participant->phone)
-                                                    <div>{{ $participant->phone }}</div>
+                                                    <div>{{ $participant->phone_formatted ?? $participant->phone }}</div>
                                                 @endif
                                                 @if($participant->email)
                                                     <div class="text-gray-500 dark:text-gray-400">{{ $participant->email }}</div>

@@ -58,6 +58,17 @@ class RaffleController extends Controller
             'total_numbers' => 'required|integer',
             'theme_color' => 'required|string',
             'number_price' => 'nullable|numeric|min:0',
+            'terms_html' => 'nullable|string',
+            'organizer_name' => 'nullable|string|max:255',
+            'organizer_id' => 'nullable|string|max:255',
+            'organizer_address' => 'nullable|string|max:255',
+            'organizer_contact' => 'nullable|string|max:255',
+            'organizer_contact_email' => 'nullable|email|max:255',
+            'platform_name' => 'nullable|string|max:255',
+            'broadcast_platform' => 'nullable|string|max:255',
+            'privacy_url' => 'nullable|url|max:255',
+            'claim_days' => 'nullable|integer|min:0',
+            'jurisdiction_city' => 'nullable|string|max:255',
         ]);
 
         $raffle = Raffle::create($request->except('banner', 'number_price'));
@@ -112,6 +123,17 @@ class RaffleController extends Controller
             'total_numbers' => 'required|integer',
             'theme_color' => 'required|string',
             'number_price' => 'nullable|numeric|min:0',
+            'terms_html' => 'nullable|string',
+            'organizer_name' => 'nullable|string|max:255',
+            'organizer_id' => 'nullable|string|max:255',
+            'organizer_address' => 'nullable|string|max:255',
+            'organizer_contact' => 'nullable|string|max:255',
+            'organizer_contact_email' => 'nullable|email|max:255',
+            'platform_name' => 'nullable|string|max:255',
+            'broadcast_platform' => 'nullable|string|max:255',
+            'privacy_url' => 'nullable|url|max:255',
+            'claim_days' => 'nullable|integer|min:0',
+            'jurisdiction_city' => 'nullable|string|max:255',
         ]);
 
         // --- Validación de cambios en total_numbers antes de actualizar el modelo ---

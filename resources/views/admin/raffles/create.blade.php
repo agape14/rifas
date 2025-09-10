@@ -18,6 +18,60 @@
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
                         </div>
 
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="organizer_name" :value="__('Organizador - Nombre')" class="text-sm sm:text-base" />
+                                <x-text-input id="organizer_name" name="organizer_name" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('organizer_name', config('raffle.organizer_name'))" />
+                            </div>
+                            <div>
+                                <x-input-label for="organizer_id" :value="__('Organizador - RUC/ID')" class="text-sm sm:text-base" />
+                                <x-text-input id="organizer_id" name="organizer_id" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('organizer_id', config('raffle.organizer_id'))" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="organizer_address" :value="__('Organizador - Dirección')" class="text-sm sm:text-base" />
+                                <x-text-input id="organizer_address" name="organizer_address" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('organizer_address', config('raffle.organizer_address'))" />
+                            </div>
+                            <div>
+                                <x-input-label for="organizer_contact" :value="__('Organizador - Contacto')" class="text-sm sm:text-base" />
+                                <x-text-input id="organizer_contact" name="organizer_contact" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('organizer_contact', config('raffle.organizer_contact'))" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="organizer_contact_email" :value="__('Organizador - Email')" class="text-sm sm:text-base" />
+                                <x-text-input id="organizer_contact_email" name="organizer_contact_email" type="email" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('organizer_contact_email', config('raffle.organizer_contact_email'))" />
+                            </div>
+                            <div>
+                                <x-input-label for="platform_name" :value="__('Plataforma - Nombre')" class="text-sm sm:text-base" />
+                                <x-text-input id="platform_name" name="platform_name" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('platform_name', config('raffle.platform_name'))" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="broadcast_platform" :value="__('Transmisión - Plataforma')" class="text-sm sm:text-base" />
+                                <x-text-input id="broadcast_platform" name="broadcast_platform" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('broadcast_platform', config('raffle.broadcast_platform'))" />
+                            </div>
+                            <div>
+                                <x-input-label for="privacy_url" :value="__('URL de Privacidad')" class="text-sm sm:text-base" />
+                                <x-text-input id="privacy_url" name="privacy_url" type="url" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('privacy_url', config('raffle.privacy_url'))" />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <x-input-label for="claim_days" :value="__('Días para Reclamo')" class="text-sm sm:text-base" />
+                                <x-text-input id="claim_days" name="claim_days" type="number" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('claim_days', config('raffle.claim_days'))" />
+                            </div>
+                            <div>
+                                <x-input-label for="jurisdiction_city" :value="__('Ciudad de Jurisdicción')" class="text-sm sm:text-base" />
+                                <x-text-input id="jurisdiction_city" name="jurisdiction_city" type="text" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base" :value="old('jurisdiction_city', config('raffle.jurisdiction_city'))" />
+                            </div>
+                        </div>
                         <div>
                             <x-input-label for="description" :value="__('Descripción')" class="text-sm sm:text-base" />
                             <div class="mt-1">
@@ -63,6 +117,15 @@
                                 <x-text-input id="theme_color" name="theme_color" type="color" class="mt-1 block w-full h-10 sm:h-12" :value="old('theme_color', '#000000')" />
                                 <x-input-error :messages="$errors->get('theme_color')" class="mt-2" />
                             </div>
+                        </div>
+
+                        <div>
+                            <x-input-label for="terms_html" :value="__('Términos y Condiciones (HTML)')" class="text-sm sm:text-base" />
+                            <div class="mt-1">
+                                <textarea id="terms_html" name="terms_html" rows="6" class="mt-1 block w-full px-3 py-2 sm:py-3 text-sm sm:text-base border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('terms_html', "<p>El sorteo se realizará en esta plataforma en la fecha indicada. La hora exacta del sorteo se comunicará en el grupo de WhatsApp oficial.</p><p>Los números marcados como pagados participan en el sorteo. Los números reservados no garantizan participación hasta que sean pagados.</p>") }}</textarea>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Puedes usar HTML. Este contenido se mostrará en un modal en la página pública.</p>
+                            <x-input-error :messages="$errors->get('terms_html')" class="mt-2" />
                         </div>
 
                         <div>

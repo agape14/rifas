@@ -120,6 +120,9 @@
                             Reservados: <span class="font-bold" id="reservados-count">{{ $raffle->numbers->where('status', 'reservado')->count() }}</span>
                         </span>
                     </div>
+                    <div class="flex items-center">
+                        <button id="shareBtnRaffle" type="button" class="ml-2 px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 text-sm">Compartir</button>
+                    </div>
                 </div>
 
                 <!-- Cuadrícula de números -->
@@ -192,6 +195,10 @@
                             <span class="text-gray-600 dark:text-gray-400">Reservado</span>
                         </div>
                     </div>
+
+                    <div class="mt-4 text-center">
+                        <button type="button" onclick="openTerms()" class="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded">Ver Términos y Condiciones</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -237,6 +244,22 @@
         </div>
     </div>
 
+    <!-- Modal de Términos y Condiciones -->
+    <div id="termsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 p-4">
+        <div class="relative top-4 sm:top-20 mx-auto p-4 sm:p-6 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="flex items-start justify-between">
+                <h3 class="text-lg sm:text-xl font-semibold text-gray-900">Términos y Condiciones</h3>
+                <button type="button" onclick="closeTerms()" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+            <div class="mt-3 prose max-w-none text-gray-700">
+                {!! $raffle->terms_html ? $raffle->renderTermsHtml() : '<p>El sorteo se realizará en esta plataforma en la fecha indicada. La hora exacta del sorteo se comunicará en el grupo de WhatsApp oficial. Al participar, aceptas las reglas de la rifa y el uso de tus datos para la gestión del sorteo.</p><p>Los números marcados como pagados participan en el sorteo. Los números reservados no garantizan participación hasta que sean pagados.</p>' !!}
+            </div>
+            <div class="mt-4 text-right">
+                <button type="button" onclick="closeTerms()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     @push('scripts')
     <script>
     // Debugging
@@ -245,7 +268,7 @@
     // Estado de selección múltiple
     const selectedIds = new Set();
 
-    function updateSelectionBar() {
+    window.updateSelectionBar = function() {
         const bar = document.getElementById('selectionBar');
         const count = selectedIds.size;
         const arr = Array.from(selectedIds);
@@ -264,7 +287,7 @@
     }
 
     // Alternar selección de un botón disponible
-    function toggleSelect(btn) {
+    window.toggleSelect = function(btn) {
         const id = btn.getAttribute('data-id');
         const status = btn.getAttribute('data-status');
         if (status !== 'disponible') return;
@@ -282,7 +305,7 @@
     }
 
     // Función global para liberar números
-    function releaseNumberPublic(numberId) {
+    window.releaseNumberPublic = function(numberId) {
         console.log('releaseNumberPublic llamado con:', numberId);
 
         @if(!auth()->check())
@@ -416,7 +439,7 @@
         });
     }
 
-    function openModal(selectedNumber) {
+    window.openModal = function(selectedNumber) {
         const isAdmin = {{ auth()->check() && auth()->user()->is_admin ? 'true' : 'false' }};
         const isGuest = {{ !auth()->check() ? 'true' : 'false' }};
 
@@ -455,7 +478,7 @@
         document.getElementById('numberModal').classList.remove('hidden');
     }
 
-    function closeModal() {
+    window.closeModal = function() {
         document.getElementById('numberModal').classList.add('hidden');
         document.getElementById('numberForm').reset();
         const info = document.getElementById('modalSelectedInfo');
@@ -463,14 +486,14 @@
         info.textContent = '';
     }
 
-    function hideParticipantInfo() {
+    window.hideParticipantInfo = function() {
         const infoDiv = document.getElementById('participant-info');
         if (infoDiv) {
             infoDiv.remove();
         }
     }
 
-    function showAlert(message, type) {
+    window.showAlert = function(message, type) {
         // Usar SweetAlert2 si está disponible, sino fallback al sistema anterior
         if (typeof Swal !== 'undefined') {
             if (type === 'success') {
@@ -510,7 +533,7 @@
         }, 5000);
     }
 
-    function updateStatistics() {
+    window.updateStatistics = function() {
         // Obtener estadísticas actualizadas del servidor
         fetch("{{ route('public.raffle.statistics', $raffle->id) }}")
             .then(response => {
@@ -748,6 +771,32 @@
             });
         });
 
+        // Compartir rifa actual con números disponibles
+        const shareBtn = document.getElementById('shareBtnRaffle');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', function() {
+                const name = @json($raffle->name);
+                const url = @json(route('public.raffle.show', $raffle->id));
+                const disp = document.getElementById('disponibles-count').textContent.trim();
+                const vend = document.getElementById('vendidos-count').textContent.trim();
+                const resv = document.getElementById('reservados-count').textContent.trim();
+                const availNums = Array.from(document.querySelectorAll('.number-btn[data-status="disponible"]')).map(b => b.textContent.trim());
+                const preview = availNums.slice(0, 30).join(', ');
+                const more = availNums.length > 30 ? `, y ${availNums.length - 30} más` : '';
+                const text = `Rifa: ${name}\nDisponibles: ${disp} | Vendidos: ${vend} | Reservados: ${resv}\nNúmeros disponibles: ${preview}${more}\nParticipa aquí: ${url}`;
+
+                if (navigator.share) {
+                    navigator.share({ title: name, text, url }).catch(() => {
+                        const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                        window.open(wa, '_blank');
+                    });
+                } else {
+                    const wa = `https://wa.me/?text=${encodeURIComponent(text)}`;
+                    window.open(wa, '_blank');
+                }
+            });
+        }
+
         // Validación en tiempo real para email y teléfono
         const emailInput = document.getElementById('email');
         const phoneInput = document.getElementById('phone');
@@ -777,7 +826,7 @@
         });
 
         // Función para verificar participante existente
-        function checkExistingParticipant() {
+        window.checkExistingParticipant = function() {
             const email = emailInput.value.trim();
             const phone = phoneInput.value.trim();
 
@@ -810,7 +859,7 @@
         emailInput.addEventListener('blur', checkExistingParticipant);
         phoneInput.addEventListener('blur', checkExistingParticipant);
 
-        function showParticipantInfo(participant) {
+        window.showParticipantInfo = function(participant) {
             let infoDiv = document.getElementById('participant-info');
             if (!infoDiv) {
                 infoDiv = document.createElement('div');
@@ -827,12 +876,19 @@
                     <div>
                         <p class="text-sm font-medium text-blue-800">Participante existente encontrado</p>
                         <p class="text-xs text-blue-600">Nombre: ${participant.name}</p>
-                        ${participant.phone ? `<p class="text-xs text-blue-600">Teléfono: ${participant.phone}</p>` : ''}
+                        ${participant.phone ? `<p class="text-xs text-blue-600">Teléfono: ${formatPeruPhone(participant.phone)}</p>` : ''}
                         ${participant.email ? `<p class="text-xs text-blue-600">Email: ${participant.email}</p>` : ''}
                         <p class="text-xs text-blue-600 mt-1">Números actuales: ${participant.numbers_count}</p>
                     </div>
                 </div>
             `;
+        }
+        // Modal términos (exponer global)
+        window.openTerms = function() {
+            document.getElementById('termsModal').classList.remove('hidden');
+        }
+        window.closeTerms = function() {
+            document.getElementById('termsModal').classList.add('hidden');
         }
     });
     </script>
