@@ -58,7 +58,7 @@
                                     @endforeach
                                 </select>
                                 @if($user->managed_raffle_id)
-                                    <button type="submit" name="clear_assignment" value="1" class="px-3 py-2 bg-yellow-500 text-white rounded" onclick="return confirm('Quitar rifa asignada?')">Quitar</button>
+                                    <button type="submit" name="clear_assignment" value="1" class="px-3 py-2 bg-yellow-500 text-white rounded" onclick="return confirmClearAssignment(event)">Quitar</button>
                                 @endif
                             </div>
                         </div>
@@ -85,6 +85,24 @@
                 el.type = 'password';
                 btn.textContent = 'Ver';
             }
+        }
+
+        function confirmClearAssignment(event) {
+            Swal.fire({
+                title: '¿Quitar Rifa Asignada?',
+                text: '¿Estás seguro de que quieres quitar la rifa asignada a este usuario?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, Quitar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    event.target.closest('form').submit();
+                }
+            });
+            return false;
         }
     </script>
     @endpush

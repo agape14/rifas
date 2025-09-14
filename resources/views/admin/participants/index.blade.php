@@ -127,7 +127,7 @@
                                                 </a>
                                                 <form action="{{ route('admin.participants.destroy', $participant->id) }}"
                                                       method="POST" class="inline"
-                                                      onsubmit="return confirm('¿Estás seguro de que quieres eliminar este participante?')">
+                                                      onsubmit="return confirmDeleteParticipant(event)">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
@@ -158,4 +158,24 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function confirmDeleteParticipant(event) {
+            Swal.fire({
+                title: '¿Eliminar Participante?',
+                text: '¿Estás seguro de que quieres eliminar este participante?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, Eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    event.target.submit();
+                }
+            });
+            return false;
+        }
+    </script>
 </x-app-layout>

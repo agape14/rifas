@@ -442,7 +442,7 @@
                         Siguiente Premio
                     </button>
                     @auth
-                        @if(Auth::user()->is_admin)
+                        @if(Auth::user()->is_admin && $raffle->status !== 'finalizada')
                             <button id="manual-finish" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 text-sm sm:text-base">
                                 Finalizar Sorteo
                             </button>
@@ -550,9 +550,20 @@
         const manualFinishBtn = document.getElementById('manual-finish');
         if (manualFinishBtn) {
             manualFinishBtn.addEventListener('click', () => {
-                if (confirm('¿Estás seguro de que quieres finalizar el sorteo manualmente? Esta acción no se puede deshacer.')) {
-                    finishRaffle();
-                }
+                Swal.fire({
+                    title: '¿Finalizar Sorteo?',
+                    text: '¿Estás seguro de que quieres finalizar el sorteo manualmente? Esta acción no se puede deshacer.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#7c3aed',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Sí, Finalizar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        finishRaffle();
+                    }
+                });
             });
         }
 
@@ -561,6 +572,14 @@
         startDrawBtn.disabled = true;
         startDrawBtn.classList.add('opacity-50', 'cursor-not-allowed');
         startDrawBtn.textContent = 'Sorteo Finalizado';
+        stopDrawBtn.disabled = true;
+        stopDrawBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        nextPrizeBtn.disabled = true;
+        nextPrizeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        statusText.textContent = 'Sorteo Finalizado';
+        drawStatus.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+        currentNumber.textContent = '✓';
+        currentParticipant.textContent = 'Sorteo completado';
         @endif
 
                         // Función para crear la ruleta visual
@@ -575,17 +594,18 @@
             wheelContainer.innerHTML = '';
 
             // Mostrar sugerencia si hay muchos números
-            if (availableNumbers.length > 50) {
-                const suggestion = document.createElement('div');
-                suggestion.className = 'absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full z-10';
-                suggestion.innerHTML = `
-                    <div class="text-center text-white p-4">
-                        <p class="text-sm font-semibold mb-2">Muchos números para mostrar</p>
-                        <p class="text-xs">Usa la "Vista Lista" para mejor legibilidad</p>
-                    </div>
-                `;
-                wheelContainer.appendChild(suggestion);
-            }
+            // Comentado: Sugerencia de vista lista (no se muestra)
+            // if (availableNumbers.length > 50) {
+            //     const suggestion = document.createElement('div');
+            //     suggestion.className = 'absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full z-10';
+            //     suggestion.innerHTML = `
+            //         <div class="text-center text-white p-4">
+            //             <p class="text-sm font-semibold mb-2">Muchos números para mostrar</p>
+            //             <p class="text-xs">Usa la "Vista Lista" para mejor legibilidad</p>
+            //         </div>
+            //     `;
+            //     wheelContainer.appendChild(suggestion);
+            // }
 
             const colors = ['yellow', 'red', 'blue', 'purple', 'green', 'orange'];
             const totalSegments = availableNumbers.length;
@@ -985,7 +1005,22 @@
             updatePrizeInfo();
             updateProgress();
 
-            // Refrescar participantes y recrear ruleta
+            // Verificar si es el último premio
+            if (currentPrizeIndex >= prizes.length) {
+                // Sorteo completado
+                statusText.textContent = '¡Sorteo completado!';
+                drawStatus.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                nextPrizeBtn.classList.add('hidden');
+                startDrawBtn.classList.add('hidden');
+                currentNumber.textContent = '✓';
+                currentParticipant.textContent = 'Todos los premios han sido sorteados';
+
+                // Finalizar la rifa cuando se complete el último premio
+                finishRaffle();
+                return;
+            }
+
+            // Refrescar participantes y recrear ruleta para el siguiente premio
             refreshParticipants();
             resetWheel();
             createWheel();
@@ -999,16 +1034,6 @@
             startDrawBtn.classList.remove('hidden');
             statusText.textContent = 'Listo para el siguiente premio';
             drawStatus.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-
-            if (currentPrizeIndex >= prizes.length) {
-                statusText.textContent = 'Sorteo completado';
-                drawStatus.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-                nextPrizeBtn.classList.add('hidden');
-                startDrawBtn.classList.add('hidden');
-
-                // Finalizar la rifa cuando se complete el último premio
-                finishRaffle();
-            }
         }
 
         function saveWinnerToDatabase(winner, prize) {
@@ -1078,6 +1103,12 @@
                 }
 
                 if (body.success) {
+                    // Ocultar el botón de finalización manual
+                    const manualFinishBtn = document.getElementById('manual-finish');
+                    if (manualFinishBtn) {
+                        manualFinishBtn.style.display = 'none';
+                    }
+
                     showAlert('¡Rifa finalizada exitosamente! Ya no se pueden realizar más inscripciones.', 'success');
                 } else {
                     throw new Error(body.message || 'Error al finalizar la rifa');

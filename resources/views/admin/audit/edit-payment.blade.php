@@ -156,7 +156,7 @@
                                     @csrf
                                     <button type="submit"
                                             class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-                                            onclick="return confirm('¿Estás seguro de que quieres confirmar este pago?')">
+                                            onclick="return confirmPayment()">
                                         Confirmar Pago
                                     </button>
                                 </form>
@@ -172,4 +172,25 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function confirmPayment() {
+            Swal.fire({
+                title: '¿Confirmar Pago?',
+                text: '¿Estás seguro de que quieres confirmar este pago?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, Confirmar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Enviar el formulario
+                    event.target.closest('form').submit();
+                }
+            });
+            return false; // Prevenir envío automático
+        }
+    </script>
 </x-app-layout>

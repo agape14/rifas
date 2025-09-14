@@ -52,7 +52,7 @@
                                             @csrf @method('DELETE')
                                             <button type="submit"
                                                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                                    onclick="return confirm('¿Estás seguro de que quieres eliminar este premio?')">
+                                                    onclick="return confirmDeletePrize(event)">
                                                 Eliminar
                                             </button>
                                         </form>
@@ -72,4 +72,24 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function confirmDeletePrize(event) {
+            Swal.fire({
+                title: '¿Eliminar Premio?',
+                text: '¿Estás seguro de que quieres eliminar este premio?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, Eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    event.target.closest('form').submit();
+                }
+            });
+            return false;
+        }
+    </script>
 </x-app-layout>

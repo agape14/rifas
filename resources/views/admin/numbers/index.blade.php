@@ -150,7 +150,7 @@
                                             <form action="{{ route('admin.numbers.release', $number->id) }}" method="POST" class="inline">
                                                 @csrf
                                                 <button type="submit" class="text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300"
-                                                        onclick="return confirm('¿Seguro que deseas liberar este número?')">
+                                                        onclick="return confirmRelease(event)">
                                                     Liberar
                                                 </button>
                                             </form>
@@ -159,7 +159,7 @@
                                             @csrf @method('DELETE')
                                             <button type="submit"
                                                     class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                                                    onclick="return confirm('¿Estás seguro de que quieres eliminar este número?')">
+                                                    onclick="return confirmDelete(event)">
                                                 Eliminar
                                             </button>
                                         </form>
@@ -359,6 +359,42 @@
                     document.getElementById('bulk-release-form').submit();
                 }
             });
+        }
+
+        function confirmRelease(event) {
+            Swal.fire({
+                title: '¿Liberar Número?',
+                text: '¿Seguro que deseas liberar este número?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, Liberar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    event.target.closest('form').submit();
+                }
+            });
+            return false;
+        }
+
+        function confirmDelete(event) {
+            Swal.fire({
+                title: '¿Eliminar Número?',
+                text: '¿Estás seguro de que quieres eliminar este número?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, Eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    event.target.closest('form').submit();
+                }
+            });
+            return false;
         }
     </script>
 </x-app-layout>

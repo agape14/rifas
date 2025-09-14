@@ -102,7 +102,7 @@
                                 <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
                                     {{ ucfirst($number->status) }}
                                 </div>
-                                <button type="button" 
+                                <button type="button"
                                         onclick="releaseNumber({{ $number->id }})"
                                         class="absolute top-1 right-1 bg-red-500 hover:bg-red-700 text-white text-xs px-2 py-1 rounded-full"
                                         title="Liberar número">
@@ -134,7 +134,17 @@
     @push('scripts')
     <script>
     function releaseNumber(numberId) {
-        if (confirm('¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.')) {
+        Swal.fire({
+            title: '¿Liberar Número?',
+            text: '¿Estás seguro de que quieres liberar este número? Esta acción hará que el número esté disponible nuevamente.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#f59e0b',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, Liberar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
             fetch(`{{ route('admin.participants.releaseNumber', $participant->id) }}`, {
                 method: 'POST',
                 headers: {
@@ -162,7 +172,8 @@
                 console.error('Error:', error);
                 showAlert('Error al procesar la solicitud', 'error');
             });
-        }
+            }
+        });
     }
 
     function showAlert(message, type) {
