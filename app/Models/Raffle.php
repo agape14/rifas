@@ -24,6 +24,11 @@ class Raffle extends Model
         return $this->hasMany(Prize::class);
     }
 
+    public function drawResults()
+    {
+        return $this->hasMany(DrawResult::class);
+    }
+
     /**
      * Renderizar términos y condiciones reemplazando variables {{ PLACEHOLDER }}
      */

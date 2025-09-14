@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Raffle;
 use App\Models\Number;
 use App\Models\Participant;
+use App\Models\DrawResult;
 use App\Events\NumberAssigned;
 
 class PublicController extends Controller
@@ -406,6 +407,75 @@ class PublicController extends Controller
             \Log::error('Error en testSelectNumber: ' . $e->getMessage());
             return response()->json([
                 'error' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Guardar ganador en la base de datos
+    public function saveWinner(Request $request, $id)
+    {
+        if (!auth()->check() || !auth()->user()->is_admin) {
+            return response()->json(['error' => 'No tienes permisos para realizar esta acción'], 403);
+        }
+
+        try {
+            $request->validate([
+                'number' => 'required|integer',
+                'participant_name' => 'required|string|max:255',
+                'participant_phone' => 'nullable|string|max:20',
+                'participant_email' => 'nullable|email|max:255',
+                'prize_id' => 'required|exists:prizes,id'
+            ]);
+
+            $raffle = Raffle::findOrFail($id);
+            $prize = $raffle->prizes()->findOrFail($request->prize_id);
+
+            // Buscar o crear participante
+            $participant = null;
+            if ($request->participant_email || $request->participant_phone) {
+                $participant = Participant::where(function($q) use ($request) {
+                    if ($request->participant_email) $q->where('email', $request->participant_email);
+                    if ($request->participant_phone) $q->orWhere('phone', $request->participant_phone);
+                })->first();
+            }
+
+            if (!$participant) {
+                $participant = Participant::create([
+                    'name' => $request->participant_name,
+                    'phone' => $request->participant_phone,
+                    'email' => $request->participant_email
+                ]);
+            } else {
+                // Actualizar datos del participante si es necesario
+                $participant->update([
+                    'name' => $request->participant_name,
+                    'phone' => $request->participant_phone ?: $participant->phone,
+                    'email' => $request->participant_email ?: $participant->email,
+                ]);
+            }
+
+            // Crear resultado del sorteo
+            $drawResult = DrawResult::create([
+                'raffle_id' => $raffle->id,
+                'prize_id' => $prize->id,
+                'number' => $request->number,
+                'participant_id' => $participant->id,
+                'prize_image' => $prize->image,
+                'drawn_at' => now(),
+                'status' => 'winner'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ganador guardado exitosamente',
+                'draw_result_id' => $drawResult->id
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al guardar ganador: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al guardar ganador: ' . $e->getMessage()
             ], 500);
         }
     }

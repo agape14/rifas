@@ -19,6 +19,56 @@
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Mostrando números de: <strong>{{ $currentRaffle->name }}</strong></span>
                             @endif
                         </div>
+
+                        <!-- Acciones masivas -->
+                        <div id="bulk-actions" class="hidden">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="text-sm text-gray-600 dark:text-gray-400">
+                                    <span id="selected-count">0</span> seleccionados
+                                </span>
+                                <button id="clear-selection"
+                                        class="px-3 py-2 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded hover:bg-gray-400 dark:hover:bg-gray-600"
+                                        onclick="clearSelection()">
+                                    Limpiar
+                                </button>
+                            </div>
+
+                            <!-- Campos adicionales para marcar como pagados -->
+                            <div id="payment-fields" class="hidden grid grid-cols-1 md:grid-cols-3 gap-3 mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                                <div>
+                                    <label for="bulk-amount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Monto (opcional)
+                                    </label>
+                                    <input type="number" id="bulk-amount" step="0.01" min="0"
+                                           class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:border-green-500 focus:ring-green-500"
+                                           placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label for="bulk-notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Notas (opcional)
+                                    </label>
+                                    <input type="text" id="bulk-notes" maxlength="500"
+                                           class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 focus:border-green-500 focus:ring-green-500"
+                                           placeholder="Notas adicionales...">
+                                </div>
+                                <div class="flex items-end gap-2">
+                                    <button id="mark-paid-bulk"
+                                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            onclick="markSelectedAsPaid()">
+                                        Marcar como Pagados
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Botón para liberar -->
+                            <div class="flex items-center gap-2">
+                                <button id="release-bulk"
+                                        class="px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onclick="releaseSelected()">
+                                    Liberar Números
+                                </button>
+                            </div>
+                        </div>
                         <form method="GET" action="{{ route('admin.numbers.index') }}" class="flex items-center gap-2">
                             @if(request('raffle_id'))
                                 <input type="hidden" name="raffle_id" value="{{ request('raffle_id') }}">
@@ -45,6 +95,9 @@
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-50 dark:bg-gray-700">
                                 <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                        <input type="checkbox" id="select-all" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" onchange="toggleAllCheckboxes(this)">
+                                    </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Rifa</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Número</th>
@@ -57,6 +110,13 @@
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                                 @foreach($numbers as $number)
                                 <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <input type="checkbox"
+                                               class="number-checkbox rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                                               value="{{ $number->id }}"
+                                               data-status="{{ $number->status }}"
+                                               onchange="updateSelection()">
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $number->id }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $number->raffle->name }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">{{ $number->number }}</td>
@@ -119,4 +179,186 @@
             </div>
         </div>
     </div>
+
+    <!-- Formulario oculto para acciones masivas -->
+    <form id="bulk-action-form" method="POST" action="{{ route('admin.numbers.bulkMarkPaid') }}" style="display: none;">
+        @csrf
+        <input type="hidden" name="number_ids" id="bulk-number-ids">
+        @if(request('raffle_id'))
+            <input type="hidden" name="raffle_id" value="{{ request('raffle_id') }}">
+        @endif
+        @if(request('q'))
+            <input type="hidden" name="q" value="{{ request('q') }}">
+        @endif
+    </form>
+
+    <!-- Formulario oculto para liberar números -->
+    <form id="bulk-release-form" method="POST" action="{{ route('admin.numbers.bulkRelease') }}" style="display: none;">
+        @csrf
+        <input type="hidden" name="number_ids" id="bulk-release-ids">
+        @if(request('raffle_id'))
+            <input type="hidden" name="raffle_id" value="{{ request('raffle_id') }}">
+        @endif
+        @if(request('q'))
+            <input type="hidden" name="q" value="{{ request('q') }}">
+        @endif
+    </form>
+
+    <script>
+        function toggleAllCheckboxes(selectAllCheckbox) {
+            const checkboxes = document.querySelectorAll('.number-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            updateSelection();
+        }
+
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('.number-checkbox:checked');
+            const selectedCount = checkboxes.length;
+            const bulkActions = document.getElementById('bulk-actions');
+            const selectedCountSpan = document.getElementById('selected-count');
+            const markPaidButton = document.getElementById('mark-paid-bulk');
+            const releaseButton = document.getElementById('release-bulk');
+            const paymentFields = document.getElementById('payment-fields');
+
+            selectedCountSpan.textContent = selectedCount;
+
+            if (selectedCount > 0) {
+                bulkActions.classList.remove('hidden');
+
+                // Verificar si hay números reservados seleccionados
+                const reservedSelected = Array.from(checkboxes).some(checkbox =>
+                    checkbox.dataset.status === 'reservado'
+                );
+
+                // Verificar si hay números no disponibles (reservados o pagados) seleccionados
+                const nonAvailableSelected = Array.from(checkboxes).some(checkbox =>
+                    checkbox.dataset.status !== 'disponible'
+                );
+
+                // Mostrar/ocultar campos de pago
+                if (reservedSelected) {
+                    paymentFields.classList.remove('hidden');
+                } else {
+                    paymentFields.classList.add('hidden');
+                }
+
+                markPaidButton.disabled = !reservedSelected;
+                markPaidButton.classList.toggle('opacity-50', !reservedSelected);
+                markPaidButton.classList.toggle('cursor-not-allowed', !reservedSelected);
+
+                releaseButton.disabled = !nonAvailableSelected;
+                releaseButton.classList.toggle('opacity-50', !nonAvailableSelected);
+                releaseButton.classList.toggle('cursor-not-allowed', !nonAvailableSelected);
+            } else {
+                bulkActions.classList.add('hidden');
+                paymentFields.classList.add('hidden');
+            }
+
+            // Actualizar estado del checkbox "Seleccionar todo"
+            const selectAllCheckbox = document.getElementById('select-all');
+            const totalCheckboxes = document.querySelectorAll('.number-checkbox').length;
+            selectAllCheckbox.checked = selectedCount === totalCheckboxes && totalCheckboxes > 0;
+            selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < totalCheckboxes;
+        }
+
+        function clearSelection() {
+            const checkboxes = document.querySelectorAll('.number-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('select-all').checked = false;
+            updateSelection();
+        }
+
+        function markSelectedAsPaid() {
+            const checkboxes = document.querySelectorAll('.number-checkbox:checked');
+            const reservedNumbers = Array.from(checkboxes).filter(checkbox =>
+                checkbox.dataset.status === 'reservado'
+            );
+
+            if (reservedNumbers.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sin números válidos',
+                    text: 'No hay números reservados seleccionados para marcar como pagados.',
+                    confirmButtonText: 'Entendido'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: '¿Confirmar acción?',
+                html: `¿Estás seguro de que quieres marcar <strong>${reservedNumbers.length}</strong> número(s) como pagados?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Sí, marcar como pagados',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const numberIds = reservedNumbers.map(checkbox => checkbox.value);
+                    const amount = document.getElementById('bulk-amount').value;
+                    const notes = document.getElementById('bulk-notes').value;
+
+                    document.getElementById('bulk-number-ids').value = JSON.stringify(numberIds);
+
+                    // Agregar campos adicionales al formulario
+                    let form = document.getElementById('bulk-action-form');
+                    if (amount) {
+                        let amountInput = document.createElement('input');
+                        amountInput.type = 'hidden';
+                        amountInput.name = 'amount';
+                        amountInput.value = amount;
+                        form.appendChild(amountInput);
+                    }
+                    if (notes) {
+                        let notesInput = document.createElement('input');
+                        notesInput.type = 'hidden';
+                        notesInput.name = 'notes';
+                        notesInput.value = notes;
+                        form.appendChild(notesInput);
+                    }
+
+                    form.submit();
+                }
+            });
+        }
+
+        function releaseSelected() {
+            const checkboxes = document.querySelectorAll('.number-checkbox:checked');
+            const nonAvailableNumbers = Array.from(checkboxes).filter(checkbox =>
+                checkbox.dataset.status !== 'disponible'
+            );
+
+            if (nonAvailableNumbers.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sin números válidos',
+                    text: 'No hay números reservados o pagados seleccionados para liberar.',
+                    confirmButtonText: 'Entendido'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: '¿Confirmar liberación?',
+                html: `¿Estás seguro de que quieres liberar <strong>${nonAvailableNumbers.length}</strong> número(s)?<br><small class="text-gray-500">Los números volverán al estado "disponible" y se desasignarán de los participantes.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Sí, liberar números',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const numberIds = nonAvailableNumbers.map(checkbox => checkbox.value);
+                    document.getElementById('bulk-release-ids').value = JSON.stringify(numberIds);
+                    document.getElementById('bulk-release-form').submit();
+                }
+            });
+        }
+    </script>
 </x-app-layout>

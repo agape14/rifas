@@ -26,6 +26,8 @@ Route::post('/raffle/{id}/reserve-number', [PublicController::class, 'reserveNum
 // Rutas que requieren autenticación
 Route::middleware('auth')->group(function () {
     Route::post('/raffle/{id}/release-number', [PublicController::class, 'releaseNumber'])->name('public.raffle.releaseNumber')->middleware('admin'); // Liberar número - Solo admin
+    Route::post('/raffle/{id}/finish', [PublicController::class, 'finishRaffle'])->name('public.raffle.finish')->middleware('admin');
+    Route::post('/raffle/{id}/save-winner', [PublicController::class, 'saveWinner'])->name('public.raffle.saveWinner')->middleware('admin');
 });
 
 // ========================
@@ -39,6 +41,22 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/reports', [ReportsController::class, 'index'])->name('reports.index');
     Route::get('/reports/raffles/{raffle}', [ReportsController::class, 'raffle'])->name('reports.raffle');
     Route::get('/reports/export/csv', [ReportsController::class, 'exportCsv'])->name('reports.export.csv');
+    Route::get('/reports/winners', [ReportsController::class, 'winners'])->name('reports.winners');
+    Route::get('/reports/winners/export/csv', [ReportsController::class, 'exportWinnersCsv'])->name('reports.winners.export.csv');
+    Route::get('/reports/winners/export/pdf', [ReportsController::class, 'exportWinnersPdf'])->name('reports.winners.export.pdf');
+    Route::get('/reports/winners/export/pdf-simple', [ReportsController::class, 'exportWinnersPdfSimple'])->name('reports.winners.export.pdf.simple');
+    Route::get('/reports/test-pdf', [ReportsController::class, 'testPdf'])->name('reports.test.pdf');
+
+    // Auditoría y reportes de cobros
+    Route::get('/audit', [\App\Http\Controllers\Admin\AuditController::class, 'index'])->name('audit.index');
+    Route::get('/audit/payments', [\App\Http\Controllers\Admin\AuditController::class, 'payments'])->name('audit.payments');
+    Route::get('/audit/payments/export/csv', [\App\Http\Controllers\Admin\AuditController::class, 'exportPaymentsCsv'])->name('audit.payments.export.csv');
+
+    // Gestión de pagos
+    Route::get('/audit/payments/{audit}/edit', [\App\Http\Controllers\Admin\AuditController::class, 'editPayment'])->name('audit.payments.edit');
+    Route::put('/audit/payments/{audit}', [\App\Http\Controllers\Admin\AuditController::class, 'updatePayment'])->name('audit.payments.update');
+    Route::post('/audit/payments/{audit}/confirm', [\App\Http\Controllers\Admin\AuditController::class, 'confirmPayment'])->name('audit.payments.confirm');
+    Route::get('/audit/payments/{audit}/evidence', [\App\Http\Controllers\Admin\AuditController::class, 'downloadEvidence'])->name('audit.payments.evidence');
 
     // Propuesta comercial (vista y PDF)
     Route::get('/proposals/commercial', [ReportsController::class, 'proposal'])->name('reports.proposal');
@@ -55,6 +73,8 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('participants/{participant}/release-number', [ParticipantController::class, 'releaseNumber'])->name('participants.releaseNumber');
     Route::post('numbers/{number}/mark-paid', [NumberController::class, 'markPaid'])->name('numbers.markPaid');
     Route::post('numbers/{number}/release', [NumberController::class, 'release'])->name('numbers.release');
+    Route::post('numbers/bulk-mark-paid', [NumberController::class, 'bulkMarkPaid'])->name('numbers.bulkMarkPaid');
+    Route::post('numbers/bulk-release', [NumberController::class, 'bulkRelease'])->name('numbers.bulkRelease');
     Route::get('raffles/{raffle}/qr', [RaffleController::class, 'qr'])->name('raffles.qr');
     Route::get('raffles/{raffle}/poster', [RaffleController::class, 'poster'])->name('raffles.poster');
 });

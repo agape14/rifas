@@ -35,6 +35,9 @@
                         <x-nav-link :href="route('admin.reports.index')" :active="request()->routeIs('admin.reports.*')">
                             {{ __('Reportes') }}
                         </x-nav-link>
+                        <x-nav-link :href="route('admin.audit.payments')" :active="request()->routeIs('admin.audit.*')">
+                            {{ __('Reporte de Cobros') }}
+                        </x-nav-link>
                         <x-nav-link :href="route('admin.reports.proposal')" :active="request()->routeIs('admin.reports.proposal')">
                             {{ __('Propuesta Comercial') }}
                         </x-nav-link>

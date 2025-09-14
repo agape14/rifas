@@ -5,10 +5,30 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Number;
+use App\Models\NumberStatusAudit;
 use App\Models\Raffle;
 
 class NumberController extends Controller
 {
+    /**
+     * Registrar cambio de estado en auditoría
+     */
+    private function logStatusChange(Number $number, string $oldStatus, string $newStatus, string $actionType, array $additionalData = [])
+    {
+        NumberStatusAudit::create([
+            'number_id' => $number->id,
+            'raffle_id' => $number->raffle_id,
+            'participant_id' => $number->participant_id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'action_type' => $actionType,
+            'amount' => $additionalData['amount'] ?? null,
+            'notes' => $additionalData['notes'] ?? null,
+            'changed_by' => auth()->id(),
+            'bulk_data' => $additionalData['bulk_data'] ?? null
+        ]);
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -140,21 +160,155 @@ class NumberController extends Controller
 
     public function markPaid(Request $request, string $id)
     {
+        $request->validate([
+            'amount' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:500'
+        ]);
+
         $number = Number::findOrFail($id);
         if ($number->status !== 'reservado') {
             return back()->withErrors(['status' => 'Solo se puede marcar como pagado un número reservado']);
         }
+
+        $oldStatus = $number->status;
         $number->status = 'pagado';
         $number->save();
-        return back()->with('success', 'Número marcado como pagado');
+
+        // Registrar en auditoría
+        $this->logStatusChange($number, $oldStatus, 'pagado', 'individual', [
+            'amount' => $request->amount,
+            'notes' => $request->notes
+        ]);
+
+        $message = 'Número marcado como pagado correctamente';
+        if ($request->amount) {
+            $message .= ' con monto de S/.' . number_format($request->amount, 2);
+        }
+
+        return back()->with('success', $message);
     }
 
     public function release(string $id)
     {
         $number = Number::findOrFail($id);
+        $oldStatus = $number->status;
+
         $number->participant_id = null;
         $number->status = 'disponible';
         $number->save();
+
+        // Registrar en auditoría
+        $this->logStatusChange($number, $oldStatus, 'disponible', 'individual');
+
         return back()->with('success', 'Número liberado correctamente');
+    }
+
+    public function bulkMarkPaid(Request $request)
+    {
+        $request->validate([
+            'number_ids' => 'required|string',
+            'amount' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string|max:500'
+        ]);
+
+        try {
+            $numberIds = json_decode($request->number_ids, true);
+
+            if (!is_array($numberIds) || empty($numberIds)) {
+                return back()->withErrors(['number_ids' => 'No se proporcionaron números válidos']);
+            }
+
+            // Verificar que todos los números existen y están en estado reservado
+            $numbers = Number::whereIn('id', $numberIds)
+                ->where('status', 'reservado')
+                ->get();
+
+            if ($numbers->count() !== count($numberIds)) {
+                return back()->withErrors(['number_ids' => 'Algunos números no están disponibles o no están en estado reservado']);
+            }
+
+            // Registrar auditoría para cada número antes del cambio
+            foreach ($numbers as $number) {
+                $this->logStatusChange($number, $number->status, 'pagado', 'bulk_mark_paid', [
+                    'amount' => $request->amount,
+                    'notes' => $request->notes,
+                    'bulk_data' => [
+                        'total_numbers' => count($numberIds),
+                        'bulk_action_date' => now()->toISOString()
+                    ]
+                ]);
+            }
+
+            // Marcar como pagados
+            $updatedCount = Number::whereIn('id', $numberIds)
+                ->where('status', 'reservado')
+                ->update(['status' => 'pagado']);
+
+            $message = $updatedCount === 1
+                ? '1 número marcado como pagado correctamente'
+                : "{$updatedCount} números marcados como pagados correctamente";
+
+            if ($request->amount) {
+                $message .= ' con monto de S/.' . number_format($request->amount, 2);
+            }
+
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en bulkMarkPaid: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al procesar la solicitud: ' . $e->getMessage()]);
+        }
+    }
+
+    public function bulkRelease(Request $request)
+    {
+        $request->validate([
+            'number_ids' => 'required|string'
+        ]);
+
+        try {
+            $numberIds = json_decode($request->number_ids, true);
+
+            if (!is_array($numberIds) || empty($numberIds)) {
+                return back()->withErrors(['number_ids' => 'No se proporcionaron números válidos']);
+            }
+
+            // Verificar que todos los números existen y no están disponibles
+            $numbers = Number::whereIn('id', $numberIds)
+                ->whereIn('status', ['reservado', 'pagado'])
+                ->get();
+
+            if ($numbers->count() !== count($numberIds)) {
+                return back()->withErrors(['number_ids' => 'Algunos números no están disponibles para liberar']);
+            }
+
+            // Registrar auditoría para cada número antes del cambio
+            foreach ($numbers as $number) {
+                $this->logStatusChange($number, $number->status, 'disponible', 'bulk_release', [
+                    'bulk_data' => [
+                        'total_numbers' => count($numberIds),
+                        'bulk_action_date' => now()->toISOString()
+                    ]
+                ]);
+            }
+
+            // Liberar números (marcar como disponibles y desasignar participantes)
+            $updatedCount = Number::whereIn('id', $numberIds)
+                ->whereIn('status', ['reservado', 'pagado'])
+                ->update([
+                    'status' => 'disponible',
+                    'participant_id' => null
+                ]);
+
+            $message = $updatedCount === 1
+                ? '1 número liberado correctamente'
+                : "{$updatedCount} números liberados correctamente";
+
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en bulkRelease: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al procesar la solicitud: ' . $e->getMessage()]);
+        }
     }
 }

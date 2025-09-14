@@ -93,6 +93,20 @@
             background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
         }
 
+        /* Estilos para mejorar la legibilidad de los números */
+        .wheel-number-text {
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.8));
+            font-family: 'Arial', sans-serif;
+        }
+
+        /* Mejorar contraste para números pequeños */
+        .wheel-number-text[font-size="8"],
+        .wheel-number-text[font-size="9"],
+        .wheel-number-text[font-size="10"] {
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,1)) drop-shadow(0 0 1px rgba(255,255,255,0.3));
+            font-weight: 900;
+        }
+
         .wheel-spinning {
             animation: wheelSpin 0.05s linear infinite;
         }
@@ -364,6 +378,16 @@
                 <div class="text-center mb-6">
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Ruleta del Sorteo</h3>
                     <p class="text-gray-600 dark:text-gray-400">Números participantes: <span id="participant-count">{{ $raffle->numbers->where('status', 'pagado')->count() }}</span></p>
+
+                    <!-- Controles de vista -->
+                    <div class="mt-4 flex justify-center gap-2">
+                        <button id="wheel-view-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            Vista Ruleta
+                        </button>
+                        <button id="list-view-btn" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                            Vista Lista
+                        </button>
+                    </div>
                 </div>
 
                                                                 <!-- Ruleta visual -->
@@ -394,6 +418,16 @@
                         <div class="wheel-indicator-dot"></div>
                     </div>
                 </div>
+
+                <!-- Vista de lista de números (oculta por defecto) -->
+                <div id="list-view" class="hidden">
+                    <div class="max-h-96 overflow-y-auto border rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
+                        <h4 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Números Participantes</h4>
+                        <div id="numbers-grid" class="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-15 gap-2">
+                            <!-- Los números se generarán dinámicamente -->
+                        </div>
+                    </div>
+                </div>
                 </div>
 
                 <!-- Controles del sorteo -->
@@ -407,6 +441,13 @@
                     <button id="next-prize" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 hidden text-sm sm:text-base">
                         Siguiente Premio
                     </button>
+                    @auth
+                        @if(Auth::user()->is_admin)
+                            <button id="manual-finish" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 sm:px-6 rounded-lg transition-colors duration-200 text-sm sm:text-base">
+                                Finalizar Sorteo
+                            </button>
+                        @endif
+                    @endauth
                 </div>
 
                 <!-- Progreso del sorteo -->
@@ -471,6 +512,13 @@
         const currentPrizeIndexElement = document.getElementById('current-prize-index');
         const progressBar = document.getElementById('progress-bar');
         const statusText = document.getElementById('status-text');
+
+        // Elementos para las vistas alternativas
+        const wheelViewBtn = document.getElementById('wheel-view-btn');
+        const listViewBtn = document.getElementById('list-view-btn');
+        const wheelContainer = document.getElementById('wheel-container');
+        const listView = document.getElementById('list-view');
+        const numbersGrid = document.getElementById('numbers-grid');
         const drawStatus = document.getElementById('draw-status');
         const participantCount = document.getElementById('participant-count');
         const winnersList = document.getElementById('winners-list');
@@ -479,12 +527,34 @@
         updatePrizeInfo();
         updateProgress();
         createWheel();
+        createNumbersList();
+
+        // Sugerir vista de lista si hay muchos números
+        if (availableNumbers.length > 50) {
+            setTimeout(() => {
+                showListView();
+            }, 2000); // Cambiar automáticamente después de 2 segundos
+        }
 
         // Event listeners
         startDrawBtn.addEventListener('click', startDraw);
         stopDrawBtn.addEventListener('click', stopDraw);
         nextPrizeBtn.addEventListener('click', nextPrize);
+
+        // Event listeners para vistas alternativas
+        wheelViewBtn.addEventListener('click', showWheelView);
+        listViewBtn.addEventListener('click', showListView);
         document.getElementById('close-congratulations').addEventListener('click', closeCongratulations);
+
+        // Botón de finalización manual (solo admin)
+        const manualFinishBtn = document.getElementById('manual-finish');
+        if (manualFinishBtn) {
+            manualFinishBtn.addEventListener('click', () => {
+                if (confirm('¿Estás seguro de que quieres finalizar el sorteo manualmente? Esta acción no se puede deshacer.')) {
+                    finishRaffle();
+                }
+            });
+        }
 
         // Deshabilitar controles si la rifa está finalizada
         @if($raffle->status === 'finalizada')
@@ -503,6 +573,19 @@
 
             console.log('Creando ruleta con', availableNumbers.length, 'segmentos');
             wheelContainer.innerHTML = '';
+
+            // Mostrar sugerencia si hay muchos números
+            if (availableNumbers.length > 50) {
+                const suggestion = document.createElement('div');
+                suggestion.className = 'absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full z-10';
+                suggestion.innerHTML = `
+                    <div class="text-center text-white p-4">
+                        <p class="text-sm font-semibold mb-2">Muchos números para mostrar</p>
+                        <p class="text-xs">Usa la "Vista Lista" para mejor legibilidad</p>
+                    </div>
+                `;
+                wheelContainer.appendChild(suggestion);
+            }
 
             const colors = ['yellow', 'red', 'blue', 'purple', 'green', 'orange'];
             const totalSegments = availableNumbers.length;
@@ -587,15 +670,26 @@
                 const textX = 150 + textRadius * Math.cos(textRad);
                 const textY = 150 + textRadius * Math.sin(textRad);
 
+                // Calcular tamaño de fuente dinámico basado en el número de segmentos
+                let fontSize = 16;
+                if (totalSegments > 50) {
+                    fontSize = Math.max(8, 16 - (totalSegments - 50) * 0.15);
+                } else if (totalSegments > 30) {
+                    fontSize = Math.max(10, 16 - (totalSegments - 30) * 0.3);
+                } else if (totalSegments > 20) {
+                    fontSize = Math.max(12, 16 - (totalSegments - 20) * 0.4);
+                }
+
                 const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 text.setAttribute('x', textX);
                 text.setAttribute('y', textY);
                 text.setAttribute('text-anchor', 'middle');
                 text.setAttribute('dominant-baseline', 'middle');
                 text.setAttribute('fill', 'white');
-                text.setAttribute('font-size', '16');
+                text.setAttribute('font-size', fontSize);
                 text.setAttribute('font-weight', 'bold');
                 text.setAttribute('text-shadow', '2px 2px 4px rgba(0,0,0,0.8)');
+                text.setAttribute('class', 'wheel-number-text');
                 text.textContent = participant.number;
 
                 svg.appendChild(path);
@@ -645,6 +739,61 @@
 
             // Actualizar contador
             participantCount.textContent = availableNumbers.length;
+
+            // Actualizar la lista de números
+            createNumbersList();
+        }
+
+        // Función para crear la lista de números
+        function createNumbersList() {
+            if (!numbersGrid) return;
+
+            numbersGrid.innerHTML = '';
+
+            availableNumbers.forEach(participant => {
+                const numberDiv = document.createElement('div');
+                numberDiv.className = 'bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg p-2 text-center text-sm font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors';
+                numberDiv.textContent = participant.number;
+                numberDiv.title = `Número ${participant.number} - ${participant.participant_name}`;
+                numberDiv.dataset.number = participant.number;
+                numberDiv.dataset.participant = participant.participant_name;
+                numbersGrid.appendChild(numberDiv);
+            });
+        }
+
+        // Función para mostrar vista de ruleta
+        function showWheelView() {
+            wheelContainer.parentElement.classList.remove('hidden');
+            listView.classList.add('hidden');
+            wheelViewBtn.classList.remove('bg-gray-600');
+            wheelViewBtn.classList.add('bg-blue-600');
+            listViewBtn.classList.remove('bg-blue-600');
+            listViewBtn.classList.add('bg-gray-600');
+        }
+
+        // Función para mostrar vista de lista
+        function showListView() {
+            wheelContainer.parentElement.classList.add('hidden');
+            listView.classList.remove('hidden');
+            listViewBtn.classList.remove('bg-gray-600');
+            listViewBtn.classList.add('bg-blue-600');
+            wheelViewBtn.classList.remove('bg-blue-600');
+            wheelViewBtn.classList.add('bg-gray-600');
+        }
+
+        // Función para destacar el ganador en la vista de lista
+        function highlightWinnerInList(winnerNumber) {
+            if (!numbersGrid) return;
+
+            const numberElements = numbersGrid.querySelectorAll('[data-number]');
+            numberElements.forEach(element => {
+                if (element.dataset.number === winnerNumber.toString()) {
+                    element.classList.remove('bg-white', 'dark:bg-gray-600', 'border-gray-300', 'dark:border-gray-500');
+                    element.classList.add('bg-green-500', 'border-green-600', 'text-white', 'animate-pulse');
+                    element.style.transform = 'scale(1.1)';
+                    element.style.transition = 'all 0.3s ease';
+                }
+            });
         }
 
         // Función para obtener texto ordinal
@@ -792,6 +941,9 @@
             currentNumber.style.color = '#10B981'; // Verde para el ganador
             currentNumber.classList.add('winner-glow');
 
+            // Destacar ganador en la vista de lista
+            highlightWinnerInList(winner.number);
+
             // Guardar ganador
             winners.push({
                 number: winner.number,
@@ -800,6 +952,9 @@
                 participant_email: winner.participant_email,
                 prize: prizes[currentPrizeIndex]
             });
+
+            // Guardar ganador en la base de datos
+            saveWinnerToDatabase(winner, prizes[currentPrizeIndex]);
 
             // Mostrar modal de felicitaciones automáticamente
             setTimeout(() => {
@@ -856,25 +1011,81 @@
             }
         }
 
+        function saveWinnerToDatabase(winner, prize) {
+            fetch(`/raffle/${raffle.id}/save-winner`, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    number: winner.number,
+                    participant_name: winner.participant_name,
+                    participant_phone: winner.participant_phone,
+                    participant_email: winner.participant_email,
+                    prize_id: prize.id
+                })
+            })
+            .then(async (response) => {
+                const contentType = response.headers.get('content-type') || '';
+                let body = null;
+                if (contentType.includes('application/json')) {
+                    body = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(`Respuesta no válida del servidor: ${text.substring(0, 120)}...`);
+                }
+
+                if (!response.ok) {
+                    const msg = body?.message || 'Error al guardar ganador';
+                    throw new Error(msg);
+                }
+
+                console.log('Ganador guardado en BD:', body);
+            })
+            .catch(error => {
+                console.error('Error al guardar ganador:', error);
+                showAlert('Error al guardar ganador en la base de datos: ' + error.message, 'error');
+            });
+        }
+
         function finishRaffle() {
             fetch(`/raffle/${raffle.id}/finish`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
+                },
+                credentials: 'same-origin'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+            .then(async (response) => {
+                const contentType = response.headers.get('content-type') || '';
+                let body = null;
+                if (contentType.includes('application/json')) {
+                    body = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(`Respuesta no válida del servidor: ${text.substring(0, 120)}...`);
+                }
+
+                if (!response.ok) {
+                    const msg = body?.message || 'Error al finalizar la rifa';
+                    throw new Error(msg);
+                }
+
+                if (body.success) {
                     showAlert('¡Rifa finalizada exitosamente! Ya no se pueden realizar más inscripciones.', 'success');
                 } else {
-                    showAlert('Error al finalizar la rifa: ' + data.message, 'error');
+                    throw new Error(body.message || 'Error al finalizar la rifa');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                showAlert('Error al finalizar la rifa', 'error');
+                console.error('Error finishRaffle:', error);
+                showAlert(error.message || 'Error al finalizar la rifa', 'error');
             });
         }
 

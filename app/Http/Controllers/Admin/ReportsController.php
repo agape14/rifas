@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Raffle;
 use App\Models\Number;
+use App\Models\DrawResult;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Barryvdh\DomPDF\Facade\Pdf as PDF;
 use App\Models\ProposalSetting;
@@ -201,5 +202,353 @@ class ReportsController extends Controller
         $setting->save();
 
         return redirect()->route('admin.reports.proposal')->with('success', 'Propuesta actualizada');
+    }
+
+    public function winners(Request $request)
+    {
+        // Obtener todas las rifas con ganadores
+        $raffles = Raffle::withCount(['drawResults as winners_count' => function($q) {
+            $q->where('status', 'winner');
+        }])
+        ->having('winners_count', '>', 0)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+        // Si se especifica una rifa específica, mostrar solo sus ganadores
+        $raffleId = $request->query('raffle_id');
+        $dateRange = $request->query('date_range');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $selectedRaffle = null;
+        $winners = collect();
+
+        // Aplicar filtros de rango de fecha automáticamente
+        if ($dateRange && $dateRange !== 'custom') {
+            $today = now();
+            switch ($dateRange) {
+                case 'today':
+                    $dateFrom = $today->format('Y-m-d');
+                    $dateTo = $today->format('Y-m-d');
+                    break;
+                case '7days':
+                    $dateFrom = $today->subDays(7)->format('Y-m-d');
+                    $dateTo = $today->format('Y-m-d');
+                    break;
+                case '15days':
+                    $dateFrom = $today->subDays(15)->format('Y-m-d');
+                    $dateTo = $today->format('Y-m-d');
+                    break;
+                case '30days':
+                    $dateFrom = $today->subDays(30)->format('Y-m-d');
+                    $dateTo = $today->format('Y-m-d');
+                    break;
+                case 'quarter':
+                    $quarterStart = $today->copy()->startOfQuarter();
+                    $dateFrom = $quarterStart->format('Y-m-d');
+                    $dateTo = $today->format('Y-m-d');
+                    break;
+                case 'semester':
+                    $semesterStart = $today->month < 7 ? $today->copy()->startOfYear() : $today->copy()->month(7)->startOfMonth();
+                    $dateFrom = $semesterStart->format('Y-m-d');
+                    $dateTo = $today->format('Y-m-d');
+                    break;
+                case 'year':
+                    $dateFrom = $today->copy()->startOfYear()->format('Y-m-d');
+                    $dateTo = $today->format('Y-m-d');
+                    break;
+            }
+        }
+
+        if ($raffleId) {
+            $selectedRaffle = Raffle::findOrFail($raffleId);
+
+            $winnersQuery = DrawResult::with(['participant', 'prize'])
+                ->where('raffle_id', $raffleId)
+                ->where('status', 'winner');
+
+            // Aplicar filtros de fecha si se proporcionan
+            if ($dateFrom) {
+                $winnersQuery->whereDate('drawn_at', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $winnersQuery->whereDate('drawn_at', '<=', $dateTo);
+            }
+
+            $winners = $winnersQuery->orderBy('drawn_at')->get();
+        }
+
+        return view('admin.reports.winners', compact('raffles', 'selectedRaffle', 'winners', 'dateFrom', 'dateTo'));
+    }
+
+    public function exportWinnersCsv(Request $request): StreamedResponse
+    {
+        try {
+            $raffleId = $request->query('raffle_id');
+            $dateFrom = $request->query('date_from');
+            $dateTo = $request->query('date_to');
+
+            $raffle = Raffle::findOrFail($raffleId);
+
+            // Generar nombre de archivo limpio
+            $raffleName = preg_replace('/[^A-Za-z0-9\s]/', '', $raffle->name);
+            $raffleName = preg_replace('/\s+/', '_', trim($raffleName));
+            $dateRange = '';
+
+            if ($dateFrom && $dateTo) {
+                if ($dateFrom === $dateTo) {
+                    $dateRange = '_' . $dateFrom;
+                } else {
+                    $dateRange = '_' . $dateFrom . '_a_' . $dateTo;
+                }
+            } elseif ($dateFrom) {
+                $dateRange = '_desde_' . $dateFrom;
+            } elseif ($dateTo) {
+                $dateRange = '_hasta_' . $dateTo;
+            }
+
+            $fileName = 'ganadores_' . $raffleName . $dateRange . '.csv';
+
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename=\"$fileName\"",
+                'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+                'Pragma' => 'public',
+            ];
+
+            $callback = function() use ($raffle, $dateFrom, $dateTo) {
+                $handle = fopen('php://output', 'w');
+
+                // Agregar BOM para UTF-8
+                fwrite($handle, "\xEF\xBB\xBF");
+
+                // Encabezados
+                fputcsv($handle, ['Rifa', $raffle->name]);
+                fputcsv($handle, ['Fecha del sorteo', $raffle->draw_date]);
+
+                // Información de filtros
+                if ($dateFrom || $dateTo) {
+                    fputcsv($handle, ['Período filtrado', ($dateFrom ?: 'Inicio') . ' - ' . ($dateTo ?: 'Fin')]);
+                }
+
+                fputcsv($handle, []); // Línea vacía
+                fputcsv($handle, ['Premio', 'Número Ganador', 'Ganador', 'Teléfono', 'Email', 'Fecha de Sorteo']);
+
+                // Construir query con filtros
+                $winnersQuery = DrawResult::with(['participant', 'prize'])
+                    ->where('raffle_id', $raffle->id)
+                    ->where('status', 'winner');
+
+                // Aplicar filtros de fecha si se proporcionan
+                if ($dateFrom) {
+                    $winnersQuery->whereDate('drawn_at', '>=', $dateFrom);
+                }
+                if ($dateTo) {
+                    $winnersQuery->whereDate('drawn_at', '<=', $dateTo);
+                }
+
+                $winners = $winnersQuery->orderBy('drawn_at')->get();
+
+                foreach ($winners as $winner) {
+                    fputcsv($handle, [
+                        $winner->prize->name ?? 'Sin premio',
+                        $winner->number,
+                        $winner->participant->name ?? 'Sin nombre',
+                        $winner->participant->phone ?? '',
+                        $winner->participant->email ?? '',
+                        $winner->drawn_at->format('d/m/Y H:i:s')
+                    ]);
+                }
+
+                fclose($handle);
+            };
+
+            return response()->stream($callback, 200, $headers);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al generar CSV de ganadores: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al generar el CSV: ' . $e->getMessage()]);
+        }
+    }
+
+    public function exportWinnersPdf(Request $request)
+    {
+        try {
+            $raffleId = $request->query('raffle_id');
+            $dateFrom = $request->query('date_from');
+            $dateTo = $request->query('date_to');
+
+            $raffle = Raffle::findOrFail($raffleId);
+
+            $winnersQuery = DrawResult::with(['participant', 'prize'])
+                ->where('raffle_id', $raffleId)
+                ->where('status', 'winner');
+
+            // Aplicar filtros de fecha si se proporcionan
+            if ($dateFrom) {
+                $winnersQuery->whereDate('drawn_at', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $winnersQuery->whereDate('drawn_at', '<=', $dateTo);
+            }
+
+            $winners = $winnersQuery->orderBy('drawn_at')->get();
+
+            // Generar nombre de archivo limpio
+            $raffleName = preg_replace('/[^A-Za-z0-9\s]/', '', $raffle->name);
+            $raffleName = preg_replace('/\s+/', '_', trim($raffleName));
+            $dateRange = '';
+
+            if ($dateFrom && $dateTo) {
+                if ($dateFrom === $dateTo) {
+                    $dateRange = '_' . $dateFrom;
+                } else {
+                    $dateRange = '_' . $dateFrom . '_a_' . $dateTo;
+                }
+            } elseif ($dateFrom) {
+                $dateRange = '_desde_' . $dateFrom;
+            } elseif ($dateTo) {
+                $dateRange = '_hasta_' . $dateTo;
+            }
+
+            $filename = 'ganadores_' . $raffleName . $dateRange . '.pdf';
+
+            // Configurar PDF con opciones más simples
+            $pdf = \PDF::loadView('admin.reports.winners-pdf', compact('raffle', 'winners', 'dateFrom', 'dateTo'))
+                ->setPaper('A4', 'portrait')
+                ->setOptions([
+                    'defaultFont' => 'serif',
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled' => false,
+                    'isPhpEnabled' => false,
+                    'isJavascriptEnabled' => false,
+                ]);
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al generar PDF de ganadores: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al generar el PDF: ' . $e->getMessage()]);
+        }
+    }
+
+    // Método de prueba para verificar DomPDF
+    public function testPdf()
+    {
+        try {
+            $html = '<html><body><h1>Prueba de PDF</h1><p>Este es un PDF de prueba generado correctamente.</p></body></html>';
+
+            $pdf = \PDF::loadHTML($html)
+                ->setPaper('A4', 'portrait')
+                ->setOptions([
+                    'defaultFont' => 'serif',
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled' => false,
+                    'isPhpEnabled' => false,
+                    'isJavascriptEnabled' => false,
+                ]);
+
+            return $pdf->download('test_pdf.pdf');
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // Método alternativo para exportar PDF con vista simple
+    public function exportWinnersPdfSimple(Request $request)
+    {
+        try {
+            $raffleId = $request->query('raffle_id');
+            $dateFrom = $request->query('date_from');
+            $dateTo = $request->query('date_to');
+
+            $raffle = Raffle::findOrFail($raffleId);
+
+            $winnersQuery = DrawResult::with(['participant', 'prize'])
+                ->where('raffle_id', $raffleId)
+                ->where('status', 'winner');
+
+            // Aplicar filtros de fecha si se proporcionan
+            if ($dateFrom) {
+                $winnersQuery->whereDate('drawn_at', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $winnersQuery->whereDate('drawn_at', '<=', $dateTo);
+            }
+
+            $winners = $winnersQuery->orderBy('drawn_at')->get();
+
+            // Generar nombre de archivo limpio
+            $raffleName = preg_replace('/[^A-Za-z0-9\s]/', '', $raffle->name);
+            $raffleName = preg_replace('/\s+/', '_', trim($raffleName));
+            $dateRange = '';
+
+            if ($dateFrom && $dateTo) {
+                if ($dateFrom === $dateTo) {
+                    $dateRange = '_' . $dateFrom;
+                } else {
+                    $dateRange = '_' . $dateFrom . '_a_' . $dateTo;
+                }
+            } elseif ($dateFrom) {
+                $dateRange = '_desde_' . $dateFrom;
+            } elseif ($dateTo) {
+                $dateRange = '_hasta_' . $dateTo;
+            }
+
+            $filename = 'ganadores_' . $raffleName . $dateRange . '.pdf';
+
+            // Crear HTML simple para el PDF
+            $html = '<html><head><meta charset="UTF-8"><title>Reporte de Ganadores</title></head><body>';
+            $html .= '<h1>Reporte de Ganadores</h1>';
+            $html .= '<h2>' . htmlspecialchars($raffle->name) . '</h2>';
+
+            if ($dateFrom || $dateTo) {
+                $html .= '<p><strong>Período:</strong> ' . ($dateFrom ?: 'Inicio') . ' - ' . ($dateTo ?: 'Fin') . '</p>';
+            }
+
+            $html .= '<p><strong>Total de ganadores:</strong> ' . $winners->count() . '</p>';
+
+            if ($winners->count() > 0) {
+                $html .= '<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse:collapse;">';
+                $html .= '<tr style="background-color:#f0f0f0;">';
+                $html .= '<th>#</th><th>Número</th><th>Ganador</th><th>Teléfono</th><th>Email</th><th>Premio</th><th>Fecha</th>';
+                $html .= '</tr>';
+
+                foreach ($winners as $index => $winner) {
+                    $html .= '<tr>';
+                    $html .= '<td>' . ($index + 1) . '</td>';
+                    $html .= '<td>' . htmlspecialchars($winner->number) . '</td>';
+                    $html .= '<td>' . htmlspecialchars($winner->participant->name ?? 'Sin nombre') . '</td>';
+                    $html .= '<td>' . htmlspecialchars($winner->participant->phone ?? '') . '</td>';
+                    $html .= '<td>' . htmlspecialchars($winner->participant->email ?? '') . '</td>';
+                    $html .= '<td>' . htmlspecialchars($winner->prize->name ?? 'Sin premio') . '</td>';
+                    $html .= '<td>' . $winner->drawn_at->format('d/m/Y H:i') . '</td>';
+                    $html .= '</tr>';
+                }
+
+                $html .= '</table>';
+            } else {
+                $html .= '<p>No se encontraron ganadores en el período seleccionado.</p>';
+            }
+
+            $html .= '<p style="margin-top:30px; font-size:10px; color:#666;">Generado el: ' . now()->format('d/m/Y H:i:s') . '</p>';
+            $html .= '</body></html>';
+
+            $pdf = \PDF::loadHTML($html)
+                ->setPaper('A4', 'portrait')
+                ->setOptions([
+                    'defaultFont' => 'serif',
+                    'isHtml5ParserEnabled' => true,
+                    'isRemoteEnabled' => false,
+                    'isPhpEnabled' => false,
+                    'isJavascriptEnabled' => false,
+                ]);
+
+            return $pdf->download($filename);
+
+        } catch (\Exception $e) {
+            \Log::error('Error al generar PDF simple de ganadores: ' . $e->getMessage());
+            return back()->withErrors(['error' => 'Error al generar el PDF: ' . $e->getMessage()]);
+        }
     }
 }
